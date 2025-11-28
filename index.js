@@ -1,52 +1,54 @@
 import { useState } from "react";
-import { API_URL } from "../lib/api";
 
 export default function Home() {
 const [input, setInput] = useState("");
 const [response, setResponse] = useState("");
 const [loading, setLoading] = useState(false);
 
-async function sendPrompt() {
+async function sendMessage() {
 if (!input.trim()) return;
+
 setLoading(true);
+setResponse("");
 
 try {
-const res = await fetch(`${API_URL}/api/chat`, {
+const res = await fetch("https://sales-trainer-api.onrender.com/api/chat", {
 method: "POST",
-headers: { "Content-Type": "application/json" },
+headers: {
+"Content-Type": "application/json"
+},
 body: JSON.stringify({ message: input })
 });
 
 const data = await res.json();
-setResponse(data.reply || "No response.");
+setResponse(data.reply || "No reply from server");
 } catch (err) {
 console.error(err);
-setResponse("Error contacting the server.");
+setResponse("Error contacting server");
 }
 
 setLoading(false);
 }
 
 return (
-<div style={{ padding: "20px", maxWidth: "600px" }}>
+<div style={{ padding: 40 }}>
 <h1>Sales Trainer UI</h1>
-
-<textarea
-rows="4"
-style={{ width: "100%", marginBottom: "10px" }}
-placeholder="Type something..."
+<input
 value={input}
 onChange={(e) => setInput(e.target.value)}
+placeholder="Say something..."
+style={{ padding: 10, width: 300 }}
 />
-
-<button onClick={sendPrompt} disabled={loading}>
+<button onClick={sendMessage} style={{ marginLeft: 10, padding: 10 }}>
 {loading ? "Thinking..." : "Send"}
 </button>
 
-<div style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}>
-<strong>Response:</strong>
+{response && (
+<div style={{ marginTop: 20 }}>
+<strong>AI Response:</strong>
 <p>{response}</p>
 </div>
+)}
 </div>
 );
 }
