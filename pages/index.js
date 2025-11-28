@@ -1,47 +1,47 @@
-mport { useState } from "react";
+import { useState } from "react";
 
 export default function Home() {
 const [input, setInput] = useState("");
 const [response, setResponse] = useState("");
-const [loading, setLoading] = useState(false);
 
-async function sendMessage() {
-setLoading(true);
+async function handleSubmit(e) {
+e.preventDefault();
 
-try {
-const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/chat", {
+const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ message: input })
+body: JSON.stringify({ message: input }),
 });
 
 const data = await res.json();
-setResponse(data.reply || "No response");
-} catch (err) {
-setResponse("Error contacting AI");
-}
-
-setLoading(false);
+setResponse(data.reply || "No response received");
 }
 
 return (
-<div style={{ padding: 30, fontFamily: "Arial" }}>
+<div style={{ padding: "20px", fontFamily: "Arial" }}>
 <h1>Sales Trainer</h1>
 
+<form onSubmit={handleSubmit}>
 <input
-placeholder="Say your pitch..."
+type="text"
 value={input}
 onChange={(e) => setInput(e.target.value)}
-style={{ width: "300px", padding: 10, marginRight: 10 }}
+placeholder="Say something to your AI coach"
+style={{ padding: "10px", width: "300px" }}
 />
-<button onClick={sendMessage} disabled={loading}>
-{loading ? "Thinking..." : "Send"}
+<button
+type="submit"
+style={{ marginLeft: "10px", padding: "10px 20px" }}
+>
+Send
 </button>
+</form>
 
-<div style={{ marginTop: 25 }}>
-<h3>AI Response:</h3>
-<p>{response}</p>
+{response && (
+<div style={{ marginTop: "20px", padding: "10px", background: "#eee" }}>
+<strong>AI:</strong> {response}
 </div>
+)}
 </div>
 );
 }
