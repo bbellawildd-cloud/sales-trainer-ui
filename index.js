@@ -15,9 +15,9 @@ try {
 const res = await fetch("https://sales-trainer-api.onrender.com/api/chat", {
 method: "POST",
 headers: {
-"Content-Type": "application/json"
+"Content-Type": "application/json",
 },
-body: JSON.stringify({ message: input })
+body: JSON.stringify({ message: input }),
 });
 
 const data = await res.json();
@@ -41,7 +41,10 @@ placeholder="Say something..."
 style={{ padding: 10, width: 300 }}
 />
 
-<button onClick={sendMessage} style={{ marginLeft: 10, padding: 10 }}>
+<button
+onClick={sendMessage}
+style={{ marginLeft: 10, padding: 10 }}
+>
 {loading ? "Thinking..." : "Send"}
 </button>
 
