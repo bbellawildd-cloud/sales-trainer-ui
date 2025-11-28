@@ -1,81 +1,52 @@
 import { useState } from "react";
+import { API_URL } from "../lib/api";
 
 export default function Home() {
 const [input, setInput] = useState("");
-const [messages, setMessages] = useState([]);
+const [response, setResponse] = useState("");
 const [loading, setLoading] = useState(false);
 
-// Your API URL from Render
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-const sendMessage = async () => {
+async function sendPrompt() {
 if (!input.trim()) return;
-
 setLoading(true);
 
-// Add your message to UI immediately
-setMessages((prev) => [...prev, { from: "user", text: input }]);
-
-const userText = input;
-setInput("");
-
 try {
-const res = await fetch(`${API_URL}/chat`, {
+const res = await fetch(`${API_URL}/api/chat`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ message: userText }),
+body: JSON.stringify({ message: input })
 });
 
 const data = await res.json();
-
-// Add AI response
-setMessages((prev) => [...prev, { from: "ai", text: data.response }]);
+setResponse(data.reply || "No response.");
 } catch (err) {
-setMessages((prev) => [
-...prev,
-{ from: "ai", text: "Error contacting server." },
-]);
+console.error(err);
+setResponse("Error contacting the server.");
 }
 
 setLoading(false);
-};
+}
 
 return (
-<div style={{ padding: 20, fontFamily: "Arial" }}>
-<h1>Sales Trainer</h1>
+<div style={{ padding: "20px", maxWidth: "600px" }}>
+<h1>Sales Trainer UI</h1>
 
-<div
-style={{
-border: "1px solid #ccc",
-padding: 10,
-height: 300,
-overflowY: "auto",
-marginBottom: 20,
-}}
->
-{messages.map((msg, i) => (
-<div
-key={i}
-style={{
-textAlign: msg.from === "user" ? "right" : "left",
-marginBottom: 10,
-}}
->
-<strong>{msg.from === "user" ? "You" : "AI"}:</strong> {msg.text}
-</div>
-))}
-{loading && <p>AI is typing...</p>}
-</div>
-
-<input
+<textarea
+rows="4"
+style={{ width: "100%", marginBottom: "10px" }}
+placeholder="Type something..."
 value={input}
 onChange={(e) => setInput(e.target.value)}
-placeholder="Type your pitch..."
-style={{ width: "80%", padding: 8 }}
 />
-<button onClick={sendMessage} style={{ padding: 8, marginLeft: 10 }}>
-Send
+
+<button onClick={sendPrompt} disabled={loading}>
+{loading ? "Thinking..." : "Send"}
 </button>
+
+<div style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}>
+<strong>Response:</strong>
+<p>{response}</p>
+</div>
 </div>
 );
 }
