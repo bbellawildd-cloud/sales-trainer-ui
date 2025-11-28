@@ -33,12 +33,14 @@ setLoading(false);
 return (
 <div style={{ padding: 40 }}>
 <h1>Sales Trainer UI</h1>
+
 <input
 value={input}
 onChange={(e) => setInput(e.target.value)}
 placeholder="Say something..."
 style={{ padding: 10, width: 300 }}
 />
+
 <button onClick={sendMessage} style={{ marginLeft: 10, padding: 10 }}>
 {loading ? "Thinking..." : "Send"}
 </button>
