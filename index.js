@@ -1,59 +1,79 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
 const [input, setInput] = useState("");
-const [response, setResponse] = useState("");
-const [loading, setLoading] = useState(false);
+const [reply, setReply] = useState("");
+const [evaluation, setEvaluation] = useState(null);
+const [leaderboard, setLeaderboard] = useState([]);
+
+const sessionId = crypto.randomUUID();
+const repId = "eli"; // later from auth
+const companyId = "demo-company";
 
 async function sendMessage() {
-if (!input.trim()) return;
-
-setLoading(true);
-setResponse("");
-
-try {
-const res = await fetch("https://sales-trainer-api.onrender.com/api/chat", {
+const res = await fetch("http://localhost:3000/api/chat", {
 method: "POST",
-headers: {
-"Content-Type": "application/json",
-},
-body: JSON.stringify({ message: input }),
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+message: input,
+sessionId,
+repId,
+companyId,
+difficulty: 3
+})
 });
 
 const data = await res.json();
-setResponse(data.reply || "No reply from server");
-} catch (err) {
-console.error(err);
-setResponse("Error contacting server");
+setReply(data.reply);
+setInput("");
 }
 
-setLoading(false);
+async function endSession() {
+const res = await fetch("http://localhost:3000/api/evaluate", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ sessionId })
+});
+
+const data = await res.json();
+setEvaluation(data);
+
+const lb = await fetch(
+`http://localhost:3000/api/leaderboard/${companyId}`
+);
+setLeaderboard(await lb.json());
 }
 
 return (
 <div style={{ padding: 40 }}>
-<h1>Sales Trainer UI</h1>
+<h2>AI Sales Trainer</h2>
 
 <input
 value={input}
 onChange={(e) => setInput(e.target.value)}
-placeholder="Say something..."
-style={{ padding: 10, width: 300 }}
 />
+<button onClick={sendMessage}>Send</button>
+<p>{reply}</p>
 
-<button
-onClick={sendMessage}
-style={{ marginLeft: 10, padding: 10 }}
->
-{loading ? "Thinking..." : "Send"}
+<button onClick={endSession}>
+End Session & Grade
 </button>
 
-{response && (
-<div style={{ marginTop: 20 }}>
-<strong>AI Response:</strong>
-<p>{response}</p>
-</div>
+{evaluation && (
+<>
+<h3>Scorecard</h3>
+<pre>{JSON.stringify(evaluation, null, 2)}</pre>
+</>
 )}
+
+<h3>Leaderboard</h3>
+<ul>
+{leaderboard.map((r, i) => (
+<li key={i}>
+{r.repId} — Level {r.level} ({r.totalXp} XP)
+</li>
+))}
+</ul>
 </div>
 );
 }
