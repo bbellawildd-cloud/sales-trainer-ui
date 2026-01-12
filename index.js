@@ -20,6 +20,7 @@ const [companyName, setCompanyName] = useState("");
 const [profile, setProfile] = useState(null);
 
 const [session, setSession] = useState(null);
+const [faceUrl, setFaceUrl] = useState("");
 const [message, setMessage] = useState("");
 const [reply, setReply] = useState("");
 
@@ -58,7 +59,7 @@ if (authUser?.id) loadProfile(authUser.id);
 }, [authUser]);
 
 async function signUp() {
-const { data, error } = await supabase.auth.signUp({ email, password });
+const { error } = await supabase.auth.signUp({ email, password });
 if (error) return alert(error.message);
 alert("Signed up. If email confirmation is on, check your email, then sign in.");
 }
@@ -76,6 +77,8 @@ setProfile(null);
 setSession(null);
 setGrade(null);
 setLeaderboard([]);
+setFaceUrl("");
+setReply("");
 }
 
 // Create company + profile (first-time setup)
@@ -100,7 +103,9 @@ const { error: pErr } = await supabase.from("profiles").insert({
 user_id: authUser.id,
 company_id: company.id,
 rep_name: repName.trim(),
-is_manager: false
+is_manager: false,
+total_xp: 0,
+level: 1
 });
 
 if (pErr) return alert(pErr.message);
@@ -113,6 +118,7 @@ if (!profile) return alert("Finish profile setup first.");
 
 setGrade(null);
 setReply("");
+setFaceUrl("");
 
 const res = await fetch(`${API_BASE}/api/session/start`, {
 method: "POST",
@@ -128,6 +134,7 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Failed to start session");
 
 setSession(data.session);
+setFaceUrl(data.faceUrl || "");
 }
 
 async function sendMessage() {
@@ -274,7 +281,27 @@ Start Session
 
 {session && (
 <div style={{ marginBottom: 20 }}>
-<div style={{ marginBottom: 10 }}>Session: <code>{session.id}</code></div>
+<div style={{ marginBottom: 10 }}>
+Session: <code>{session.id}</code>
+</div>
+
+<div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+{faceUrl && (
+<img
+src={faceUrl}
+alt="Prospect face"
+width={64}
+height={64}
+style={{ borderRadius: 12, border: "1px solid #ddd" }}
+/>
+)}
+<div>
+<div><b>Prospect persona:</b> {session.persona}</div>
+<div style={{ fontSize: 12, opacity: 0.7 }}>
+(Randomized each session • consistent during session)
+</div>
+</div>
+</div>
 
 <input
 placeholder="Say your pitch..."
@@ -287,7 +314,7 @@ Send
 </button>
 
 <div style={{ marginTop: 12 }}>
-<b>Homeowner:</b>
+<b>Prospect:</b>
 <div style={{ marginTop: 6 }}>{reply}</div>
 </div>
 
