@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+let recognition;
+
+if (typeof window !== "undefined") {
+const SpeechRecognition =
+window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+recognition = new SpeechRecognition();
+recognition.continuous = false;
+recognition.lang = "en-US";
+}
+}
 
 const supabase = createClient(
 process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -29,6 +41,39 @@ const [leaderboard, setLeaderboard] = useState([]);
 
 const [industry, setIndustry] = useState("pest");
 const [difficulty, setDifficulty] = useState(2);
+const [listening, setListening] = useState(false);
+const [speaking, setSpeaking] = useState(false)
+
+  function startListening() {
+if (!recognition) {
+alert("Speech recognition not supported. Use Chrome on desktop.");
+return;
+}
+
+setListening(true);
+recognition.start();
+
+recognition.onresult = (event) => {
+const transcript = event.results?.[0]?.[0]?.transcript || "";
+setMessage(transcript);
+setListening(false);
+};
+
+recognition.onerror = () => setListening(false);
+recognition.onend = () => setListening(false);
+}
+
+function speak(text) {
+if (!text || typeof window === "undefined") return;
+
+window.speechSynthesis.cancel();
+const u = new SpeechSynthesisUtterance(text);
+u.onstart = () => setSpeaking(true);
+u.onend = () => setSpeaking(false);
+u.onerror = () => setSpeaking(false);
+window.speechSynthesis.speak(u);
+}
+
 
 useEffect(() => {
 supabase.auth.getSession().then(({ data }) => setAuthUser(data.session?.user ?? null));
