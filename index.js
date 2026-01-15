@@ -200,6 +200,7 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Chat failed");
 
 setReply(data.reply);
+  speak(data.reply);
 setMessage("");
 }
 
@@ -355,6 +356,13 @@ onChange={(e) => setMessage(e.target.value)}
 style={{ width: 520, padding: 10 }}
 />
 <button onClick={sendMessage} style={{ marginLeft: 10, padding: 10 }}>
+<button onClick={startlistening}>
+  {listening ? "Listening..." : "🎤 Talk"}
+</button>
+
+<button onClick={() => speak(reply)} disabled={!reply}>
+{speaking ? "Speaking"..." : "🔊 Replay"}
+  </button>
 Send
 </button>
 
