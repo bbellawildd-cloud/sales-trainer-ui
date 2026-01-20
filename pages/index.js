@@ -148,7 +148,7 @@ const { error: pErr } = await supabase.from("profiles").insert({
 user_id: authUser.id,
 company_id: company.id,
 rep_name: repName.trim(),
-is_manager: false,
+role: "manager",
 total_xp: 0,
 level: 1
 });
