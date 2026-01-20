@@ -324,10 +324,10 @@ Sign Out
 Start Session
 </button>
 </div>
-{profile?.role == "manager && (
+{profile?.role == "manager" && (
   <button
  style={{ marginLeft: 10 }}
-onClick={() => window.locationhref = "/dashboard"}
+onClick={() => window.location.href = "/dashboard"}
 >
   Manager Dashboard
   </button>
