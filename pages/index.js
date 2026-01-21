@@ -404,6 +404,7 @@ End Session & Grade
   <p>✅ Manager access enabled</p>
   <p>From here you will manage reps, sessions, and performance.</p>
   </div>
+  )}
   
 <h3>Company Leaderboard</h3>
 <ol>
