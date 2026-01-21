@@ -406,7 +406,7 @@ End Session & Grade
   </div>
   )}
   
-<h3>Company Leaderboard</h3>
+<h2>Company Leaderboard</h2>
 <ol>
 {leaderboard.map((r, idx) => (
 <li key={idx}>
