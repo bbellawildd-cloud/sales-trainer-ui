@@ -398,7 +398,13 @@ End Session & Grade
 </div>
 )}
 
-<div style={{ marginTop: 30 }}>
+{profile?.role == "manager" && (
+<div style={{ marginTop: 20, padding: 16, boarder: "2px solid black" }}>
+  <h2>Manager Dashboard</h2>
+  <p>✅ Manager access enabled</p>
+  <p>From here you'll manage reps, sessions, and performance.</p>
+  </div>
+  
 <h3>Company Leaderboard</h3>
 <ol>
 {leaderboard.map((r, idx) => (
