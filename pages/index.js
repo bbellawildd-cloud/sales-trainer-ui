@@ -402,7 +402,7 @@ End Session & Grade
 <div style={{ marginTop: 20, padding: 16, border: "2px solid black" }}>
   <h2>Manager Dashboard</h2>
   <p>✅ Manager access enabled</p>
-  <p>From here you'll manage reps, sessions, and performance.</p>
+  <p>From here you will manage reps, sessions, and performance.</p>
   </div>
   
 <h3>Company Leaderboard</h3>
