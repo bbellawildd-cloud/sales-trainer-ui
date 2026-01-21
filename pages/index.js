@@ -398,7 +398,7 @@ End Session & Grade
 </div>
 )}
 
-{profile?.role === "manager" && (
+{true && (
 <div style={{ marginTop: 20, padding: 16, border: "2px solid black" }}>
   <h2>Manager Dashboard</h2>
   <p>✅ Manager access enabled</p>
