@@ -410,7 +410,7 @@ End Session & Grade
 <ol>
 {leaderboard.map((r, idx) => (
 <li key={idx}>
-{r.rep_name} — Level {r.level} ({r.total_xp} XP)
+{r.rep_name} - Level {r.level} ({r.total_xp} XP)
 </li>
 ))}
 </ol>
