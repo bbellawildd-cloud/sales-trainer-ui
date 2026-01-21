@@ -398,8 +398,8 @@ End Session & Grade
 </div>
 )}
 
-{profile?.role == "manager" && (
-<div style={{ marginTop: 20, padding: 16, boarder: "2px solid black" }}>
+{profile?.role === "manager" && (
+<div style={{ marginTop: 20, padding: 16, border: "2px solid black" }}>
   <h2>Manager Dashboard</h2>
   <p>✅ Manager access enabled</p>
   <p>From here you'll manage reps, sessions, and performance.</p>
