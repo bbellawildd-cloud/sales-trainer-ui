@@ -338,11 +338,11 @@ style={{ marginLeft: 10 }}
 onClick={async () => {
 const code = crypto.randomUUID()
 
-const { data: profileData } = await supabase
+const { data: profile, error } = await supabase
 .from("profiles")
-.select("company_id")
-.eq("user_id", user.id)
-.single()
+.select("*")
+.eq("user_id", user.id) // <-- THIS is the key
+.single();
 
 await supabase.from("invites").insert({
 code,
