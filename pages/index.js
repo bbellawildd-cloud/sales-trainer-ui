@@ -439,22 +439,7 @@ End Session & Grade
 </div>
 )}
 
-{profile?.is_manager === true && (
-<div style={{ marginTop: 20, padding: 16, border: "2px solid black" }}>
-  <h2>Manager Dashboard</h2>
-  <p>✅ Manager access enabled</p>
-  <p>From here you will manage reps, sessions, and performance.</p>
-  </div>
-  )}
-  
-<h2>Company Leaderboard</h2>
-<ol>
-{leaderboard.map((r, idx) => (
-<li key={idx}>
-{r.rep_name} - Level {r.level} ({r.total_xp} XP)
-</li>
-))}
-</ol>
+
 </div>  
   </div>  
 );
