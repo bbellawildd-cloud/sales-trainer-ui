@@ -1,1 +1,31 @@
+html, body {
+margin: 0;
+padding: 0;
+font-family: Inter, system-ui, -apple-system, sans-serif;
+background: linear-gradient(135deg, #0f172a, #1e293b);
+color: white;
+}
 
+button {
+background: #3b82f6;
+color: white;
+border: none;
+padding: 10px 16px;
+border-radius: 8px;
+cursor: pointer;
+font-weight: 600;
+transition: all 0.2s ease;
+}
+
+button:hover {
+transform: translateY(-2px);
+background: #2563eb;
+}
+
+input, select {
+padding: 10px;
+border-radius: 8px;
+border: 1px solid #334155;
+background: #1e293b;
+color: white;
+}
