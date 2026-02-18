@@ -8,7 +8,7 @@ window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (SpeechRecognition) {
 recognition = new SpeechRecognition();
-recognition.continuous = false;
+recognition.continuous = false; 
 recognition.lang = "en-US";
 }
 }
