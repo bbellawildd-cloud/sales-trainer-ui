@@ -411,7 +411,7 @@ End Session & Grade
 )}
 
 
-</div>  
-  </div>  
-);
+      </div>  
+    </div>  
+  );
 }
