@@ -413,5 +413,6 @@ End Session & Grade
 
       </div>  
     </div>  
+  )}
   );
 }
