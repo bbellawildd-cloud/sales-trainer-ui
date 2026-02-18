@@ -289,8 +289,6 @@ Sign Out
 </button>
 </div>
 </div>
-);
-}
 
 return (
 <div style={{
@@ -457,8 +455,7 @@ End Session & Grade
 </li>
 ))}
 </ol>
-  
-</div>  {/* closes maxWidth container */}
-  </div>  {/* closes background wrapper */}
+</div>  
+  </div>  
 );
 }
