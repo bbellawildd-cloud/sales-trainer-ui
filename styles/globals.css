@@ -78,3 +78,47 @@ border: 1px solid #334155;
 background: #1e293b;
 color: white;
 }
+.app {
+min-height: 100vh;
+background: #0f172a;
+color: white;
+font-family: Inter, system-ui, Arial;
+}
+
+.topbar {
+height: 64px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 0 32px;
+background: #111827;
+border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.logo {
+font-weight: 700;
+font-size: 18px;
+}
+
+.user {
+display: flex;
+align-items: center;
+gap: 16px;
+}
+
+.user button {
+padding: 8px 12px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.12);
+background: rgba(255,255,255,0.06);
+color: white;
+cursor: pointer;
+}
+
+.user button:hover {
+background: rgba(255,255,255,0.12);
+}
+
+.content {
+padding: 40px;
+}
