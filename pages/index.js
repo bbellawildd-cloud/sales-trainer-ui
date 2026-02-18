@@ -89,7 +89,7 @@ async function loadProfile(userId) {
 const { data, error } = await supabase
 .from("profiles")
 .select("user_id, company_id, rep_name, total_xp, level, is_manager")
-.eq("user_id", userId)
+.eq("user_id", authUserId)
 .single();
 
 if (error) {
@@ -331,13 +331,13 @@ const code = crypto.randomUUID()
 const { data: Myprofile, error } = await supabase
 .from("profiles")
 .select("*")
-.eq("user_id", user.id) // <-- THIS is the key
+.eq("user_id", authUser.id) 
 .single();
 
 await supabase.from("invites").insert({
 code,
-company_id: profileData.company_id,
-})
+company_id: Myprofile.company_id,
+});
 
 alert(`Invite link created:\n${window.location.origin}/invite/${code}`)
 }}
@@ -413,6 +413,5 @@ End Session & Grade
 
       </div>  
     </div>  
-  }
   );
 }
