@@ -31,17 +31,14 @@ const [faceUrl, setFaceUrl] = useState("");
 const [message, setMessage] = useState("");
 const [reply, setReply] = useState("");
 const [grade, setGrade] = useState(null);
+const [leaderboard, setLeaderboard] = useState([]);
 const [industry, setIndustry] = useState("pest");
 const [difficulty, setDifficulty] = useState(2);
 const [listening, setListening] = useState(false);
 const [speaking, setSpeaking] = useState(false);
 
 function startListening() {
-if (!recognition) {
-alert("Speech recognition not supported.");
-return;
-}
-
+if (!recognition) return alert("Speech recognition not supported.");
 setListening(true);
 recognition.start();
 
@@ -102,7 +99,7 @@ setAuthUser(data.user);
 async function signUp() {
 const { error } = await supabase.auth.signUp({ email, password });
 if (error) return alert(error.message);
-alert("Signed up! Check email if confirmation enabled.");
+alert("Signed up!");
 }
 
 async function signOut() {
@@ -112,6 +109,7 @@ setProfile(null);
 setSession(null);
 setGrade(null);
 setReply("");
+setLeaderboard([]);
 }
 
 async function startSession() {
@@ -129,13 +127,13 @@ const data = await res.json();
 if (!res.ok) return alert(data.error);
 
 setSession(data.session);
-setFaceUrl(data.faceUrl);
-setGrade(null);
+setFaceUrl(data.faceUrl || "");
 setReply("");
+setGrade(null);
 }
 
 async function sendMessage() {
-if (!session) return;
+if (!session || !message.trim()) return;
 
 const res = await fetch(`${API_BASE}/api/chat`, {
 method: "POST",
@@ -176,17 +174,8 @@ if (!authUser) {
 return (
 <div style={{ padding: 40 }}>
 <h2>AI Sales Trainer</h2>
-<input
-placeholder="email"
-value={email}
-onChange={(e) => setEmail(e.target.value)}
-/>
-<input
-type="password"
-placeholder="password"
-value={password}
-onChange={(e) => setPassword(e.target.value)}
-/>
+<input placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+<input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
 <div>
 <button onClick={signIn}>Sign In</button>
 <button onClick={signUp}>Sign Up</button>
@@ -204,27 +193,47 @@ return (
 <h2>AI Sales Trainer</h2>
 
 <div>
-Logged in as <b>{profile.rep_name}</b> — Level{" "}
-<b>{profile.level}</b> ({profile.total_xp} XP)
-<button onClick={signOut} style={{ marginLeft: 10 }}>
-Sign Out
-</button>
+Logged in as <b>{profile.rep_name}</b> — Level <b>{profile.level}</b> ({profile.total_xp} XP)
+<button onClick={signOut} style={{ marginLeft: 10 }}>Sign Out</button>
 </div>
 
-<div style={{ marginTop: 20 }}>
-<select
-value={industry}
-onChange={(e) => setIndustry(e.target.value)}
+{profile?.is_manager && (
+<>
+<button onClick={() => window.location.href = "/dashboard"}>
+Manager Dashboard
+</button>
+
+<button
+onClick={async () => {
+const code = crypto.randomUUID();
+
+const { data: myProfile } = await supabase
+.from("profiles")
+.select("*")
+.eq("user_id", authUser.id)
+.single();
+
+await supabase.from("invites").insert({
+code,
+company_id: myProfile.company_id,
+});
+
+alert(`${window.location.origin}/invite/${code}`);
+}}
 >
+Create Rep Invite Link
+</button>
+</>
+)}
+
+<div style={{ marginTop: 20 }}>
+<select value={industry} onChange={(e) => setIndustry(e.target.value)}>
 <option value="pest">Pest</option>
 <option value="solar">Solar</option>
 <option value="insurance">Insurance</option>
 </select>
 
-<select
-value={difficulty}
-onChange={(e) => setDifficulty(Number(e.target.value))}
->
+<select value={difficulty} onChange={(e) => setDifficulty(Number(e.target.value))}>
 <option value={1}>1</option>
 <option value={2}>2</option>
 <option value={3}>3</option>
@@ -253,13 +262,9 @@ placeholder="Say your pitch..."
 🔊 Replay
 </button>
 
-<div style={{ marginTop: 10 }}>
-<b>Prospect:</b> {reply}
-</div>
+<div><b>Prospect:</b> {reply}</div>
 
-<button onClick={endAndGrade} style={{ marginTop: 10 }}>
-End Session & Grade
-</button>
+<button onClick={endAndGrade}>End Session & Grade</button>
 </div>
 )}
 
