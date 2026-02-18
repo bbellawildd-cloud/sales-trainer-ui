@@ -277,6 +277,5 @@ placeholder="Say your pitch..."
 </div>
 )}
 </div> 
-  </div>  
 );
 }
