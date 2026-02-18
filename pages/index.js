@@ -293,7 +293,13 @@ Sign Out
 }
 
 return (
-<div style={{ padding: 40 }}>
+<div style={{
+  minHeight: "100vh",
+  background: "linear-gradient(135deg, #0f172a, #1e293b)",
+  color: "white",
+  padding: 40,
+  fontFamily: "Inter, sans-serif"
+}}>
 <h2>AI Sales Trainer</h2>
 
 <div style={{ marginBottom: 10 }}>
