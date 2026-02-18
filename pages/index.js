@@ -297,9 +297,12 @@ return (
   minHeight: "100vh",
   background: "linear-gradient(135deg, #0f172a, #1e293b)",
   color: "white",
-  padding: 40,
-  fontFamily: "Inter, sans-serif"
-}}>
+  padding: 32,
+  fontFamily: "Inter, system-ui, Arial"
+}}
+>
+  <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+{/* EVERYTHING ELSE ON THE PAGE GOES INSIDE THIS DIV */}
 <h2>AI Sales Trainer</h2>
 
 <div style={{ marginBottom: 10 }}>
@@ -326,9 +329,20 @@ Sign Out
 <option value={5}>5</option>
 </select>
 
-<button onClick={startSession} style={{ marginLeft: 16, padding: 10 }}>
+<button
+  onClick={startSession}
+    style={{
+      padding: "12px 20px",
+      background: "#3b82f6",
+      color: "white",
+        border: "none",
+      borderRadius: 8,
+      frontWeight: 600,
+      cursor: "pointer",
+      marginLeft: 16
+    }}
 Start Session
-</button>
+  </button>
 </div>
 {profile?.is_manager === true && (
   <button
