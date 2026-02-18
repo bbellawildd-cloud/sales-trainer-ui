@@ -332,7 +332,29 @@ onClick={() => window.location.href = "/dashboard"}
   Manager Dashboard
   </button>
 )}
+{profile?.role === "manager" && (
+<button
+style={{ marginLeft: 10 }}
+onClick={async () => {
+const code = crypto.randomUUID()
 
+const { data: profileData } = await supabase
+.from("profiles")
+.select("company_id")
+.eq("user_id", user.id)
+.single()
+
+await supabase.from("invites").insert({
+code,
+company_id: profileData.company_id,
+})
+
+alert(`Invite link created:\n${window.location.origin}/invite/${code}`)
+}}
+>
+Create Rep Invite Link
+</button>
+)}
 {session && (
 <div style={{ marginBottom: 20 }}>
 <div style={{ marginBottom: 10 }}>
