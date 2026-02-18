@@ -260,35 +260,6 @@ Sign Up
 }
 
 if (authUser && !profile) {
-return (
-<div style={{ padding: 40 }}>
-<h2>Finish setup</h2>
-<p>We need your rep name + company name (creates your company).</p>
-
-<input
-placeholder="Your name (ex: Eli)"
-value={repName}
-onChange={(e) => setRepName(e.target.value)}
-style={{ width: 360, padding: 10, marginBottom: 10 }}
-/>
-<br />
-<input
-placeholder="Company name (ex: Ode Solar Team)"
-value={companyName}
-onChange={(e) => setCompanyName(e.target.value)}
-style={{ width: 360, padding: 10, marginBottom: 10 }}
-/>
-<br />
-<button onClick={createCompanyAndProfile} style={{ padding: 10 }}>
-Create Company + Profile
-</button>
-
-<div style={{ marginTop: 20 }}>
-<button onClick={signOut} style={{ padding: 10 }}>
-Sign Out
-</button>
-</div>
-</div>
 
 return (
 <div style={{
