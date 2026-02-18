@@ -209,8 +209,20 @@ return (
 }
 
 return (
-<div className="container">
-  <div className="card">
+<div className="app">
+<div className="topbar">
+<div className="logo">AI Sales Trainer</div>
+
+<div className="user">
+<div>
+{profile?.rep_name} • Level {profile?.level}
+</div>
+<button onClick={signOut}>Sign Out</button>
+</div>
+</div>
+
+<div className="content">
+
 <h2>AI Sales Trainer</h2>
 
 <div>
