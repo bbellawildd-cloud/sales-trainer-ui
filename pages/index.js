@@ -173,20 +173,39 @@ await loadProfile(profile.user_id);
 if (!authUser) {
 return (
 <div className="container">
-  <div className="card">
+<div className="card">
 <h2>AI Sales Trainer</h2>
-<input placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-<input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-<div>
+
+<input
+placeholder="email"
+value={email}
+onChange={(e) => setEmail(e.target.value)}
+/>
+
+<input
+type="password"
+placeholder="password"
+value={password}
+onChange={(e) => setPassword(e.target.value)}
+/>
+
+<div className="row">
 <button onClick={signIn}>Sign In</button>
-<button onClick={signUp}>Sign Up</button>
+<button onClick={signUp} className="secondary">
+Sign Up
+</button>
+</div>
 </div>
 </div>
 );
 }
 
 if (!profile) {
-return <div style={{ padding: 40 }}>Loading profile...</div>;
+return (
+<div className="container">
+<div className="card">Loading profile...</div>
+</div>
+);
 }
 
 return (
