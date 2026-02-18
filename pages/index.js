@@ -344,7 +344,7 @@ alert(`Invite link created:\n${window.location.origin}/invite/${code}`)
 >
 Create Rep Invite Link
 </button>
-)}
+})
 {session && (
 <div style={{ marginBottom: 20 }}>
 <div style={{ marginBottom: 10 }}>
