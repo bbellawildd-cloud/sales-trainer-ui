@@ -338,7 +338,7 @@ style={{ marginLeft: 10 }}
 onClick={async () => {
 const code = crypto.randomUUID()
 
-const { data: profile, error } = await supabase
+const { data: Myprofile, error } = await supabase
 .from("profiles")
 .select("*")
 .eq("user_id", user.id) // <-- THIS is the key
@@ -420,7 +420,7 @@ End Session & Grade
 </div>
 )}
 
-{true && (
+{profile?.is_manager === true && (
 <div style={{ marginTop: 20, padding: 16, border: "2px solid black" }}>
   <h2>Manager Dashboard</h2>
   <p>✅ Manager access enabled</p>
