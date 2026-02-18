@@ -457,6 +457,7 @@ End Session & Grade
 ))}
 </ol>
   
-</div>
+</div>  {/* closes maxWidth container */}
+  </div>  {/* closes background wrapper */}
 );
 }
