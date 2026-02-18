@@ -335,12 +335,13 @@ Sign Out
       padding: "12px 20px",
       background: "#3b82f6",
       color: "white",
-        border: "none",
+      border: "none",
       borderRadius: 8,
-      frontWeight: 600,
+      fontWeight: 600,
       cursor: "pointer",
-      marginLeft: 16
+      marginLeft: 16,
     }}
+>
 Start Session
   </button>
 </div>
