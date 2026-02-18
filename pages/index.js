@@ -324,7 +324,7 @@ Sign Out
 Start Session
 </button>
 </div>
-{profile?.role === "manager" && (
+{profile?.is_manager === true && (
   <button
  style={{ marginLeft: 10 }}
 onClick={() => window.location.href = "/dashboard"}
@@ -332,7 +332,7 @@ onClick={() => window.location.href = "/dashboard"}
   Manager Dashboard
   </button>
 )}
-{profile?.role === "manager" && (
+{profile?.is_manager === true && (
 <button
 style={{ marginLeft: 10 }}
 onClick={async () => {
