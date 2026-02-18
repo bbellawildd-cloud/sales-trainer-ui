@@ -172,7 +172,8 @@ await loadProfile(profile.user_id);
 
 if (!authUser) {
 return (
-<div style={{ padding: 40 }}>
+<div className="container">
+  <div className="card">
 <h2>AI Sales Trainer</h2>
 <input placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
 <input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -189,7 +190,8 @@ return <div style={{ padding: 40 }}>Loading profile...</div>;
 }
 
 return (
-<div style={{ padding: 40 }}>
+<div className="container">
+  <div className="card">
 <h2>AI Sales Trainer</h2>
 
 <div>
@@ -274,6 +276,7 @@ placeholder="Say your pitch..."
 <pre>{JSON.stringify(grade, null, 2)}</pre>
 </div>
 )}
-</div>
+</div> 
+  </div>  
 );
 }
