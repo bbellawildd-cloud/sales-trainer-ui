@@ -259,14 +259,16 @@ Create Rep Invite Link
 </>
 )}
 
-<div style={{ marginTop: 20 }}>
+<div classname="card">
+  <h3>Start Training Session</h3>
+  <div style={{ display: "flex", gap:16, alignItems: "center", marginTop: 16 }}>
 <select value={industry} onChange={(e) => setIndustry(e.target.value)}>
 <option value="pest">Pest</option>
 <option value="solar">Solar</option>
 <option value="insurance">Insurance</option>
 </select>
 
-<select value={difficulty} onChange={(e) => setDifficulty(Number(e.target.value))}>
+<select value={difficulty} onChange={(e) => setDifficulty(parseInt(e.target.value, 10))}>
 <option value={1}>1</option>
 <option value={2}>2</option>
 <option value={3}>3</option>
@@ -274,8 +276,11 @@ Create Rep Invite Link
 <option value={5}>5</option>
 </select>
 
-<button onClick={startSession}>Start Session</button>
+<button onClick={startSession}>
+  Start Session
+  </button>
 </div>
+  </div>
 
 {session && (
 <div style={{ marginTop: 20 }}>
