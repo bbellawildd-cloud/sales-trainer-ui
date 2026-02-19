@@ -220,6 +220,7 @@ return (
 <button onClick={signOut}>Sign Out</button>
 </div>
 </div>
+  <div className="content">
 
 <div className="content">
 
