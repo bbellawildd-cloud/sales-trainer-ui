@@ -247,9 +247,7 @@ return company?.industry || companyIndustry || "pest";
 }, [company?.industry, companyIndustry]);
 
 async function startSession() {
-if (!profile) return alert("Finish profile setup first.");
-
-// Industry must be set by manager at company level
+if (!profile) return alert("No profile loaded.");
 if (!lockedIndustry) return alert("Manager must set company industry first.");
 
 setGrade(null);
