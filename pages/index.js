@@ -457,6 +457,18 @@ if (error) return alert(error.message);
 setAuthUser(data.user);
 }
 
+async function forgotPassword() {
+if (!email.trim()) return alert("Type your email first.");
+
+const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+redirectTo: `${window.location.origin}/reset-password`,
+});
+
+if (error) return alert(error.message);
+
+alert("Reset email sent ✅ Check inbox/spam.");
+}
+
 async function signOut() {
 await supabase.auth.signOut();
 setAuthUser(null);
@@ -647,6 +659,11 @@ onChange={(e) => setPassword(e.target.value)}
 <button className="secondary" onClick={signUp}>
 Sign Up
 </button>
+<div style={{ marginTop: 10 }}>
+<button className="secondary" onClick={forgotPassword}>
+Forgot password?
+</button>
+</div>
 </div>
 </div>
 </div>
