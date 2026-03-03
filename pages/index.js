@@ -852,9 +852,32 @@ Select…
 <button className="secondary" onClick={() => (window.location.href = "/dashboard")} type="button">
 Manager Dashboard
 </button>
-<button className="secondary" onClick={createInviteLink} type="button">
-Create Rep Invite Link
+<div style={{ marginTop: 14 }}>
+<h3 style={{ marginBottom: 8 }}>Invite a rep</h3>
+
+<div className="field">
+<label>Rep name</label>
+<input
+placeholder="John Smith"
+value={inviteName}
+onChange={(e) => setInviteName(e.target.value)}
+/>
+</div>
+
+<div className="field">
+<label>Rep email</label>
+<input
+placeholder="rep@company.com"
+value={inviteEmail}
+onChange={(e) => setInviteEmail(e.target.value)}
+/>
+</div>
+
+<button onClick={sendRepInvite} disabled={sendingInvite}>
+{sendingInvite ? "Sending..." : "Send Invite Email"}
 </button>
+</div>
+
 </div>
 </div>
 ) : null}
