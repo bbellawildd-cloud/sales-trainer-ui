@@ -1,5 +1,298 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+// =======================
+// SCORECARD HELPERS + UI
+// Paste under imports
+// =======================
+
+function asScore100(v) {
+if (v == null) return null;
+const x = Number(v);
+if (Number.isNaN(x)) return null;
+// 0..1 => 0..100
+if (x >= 0 && x <= 1) return Math.round(x * 100);
+// already 0..100-ish
+if (x >= 0 && x <= 100) return Math.round(x);
+return Math.round(x);
+}
+
+function pick(obj, keys) {
+for (const k of keys) {
+if (obj && obj[k] != null) return obj[k];
+}
+return null;
+}
+
+function normalizeGrade(raw) {
+const g = raw || {};
+
+const overall = asScore100(
+pick(g, ["overall_score", "overall", "score", "total_score", "final_score"])
+);
+
+const stageReached =
+pick(g, ["stage_reached", "stage", "furthest_stage", "pipeline_stage"]) ||
+pick(g?.summary, ["stage_reached", "stage"]) ||
+null;
+
+const stuckPoints =
+pick(g, ["stuck_points", "stuckPoints", "blockers"]) ||
+pick(g?.summary, ["stuck_points", "blockers"]) ||
+[];
+
+const wins =
+pick(g, ["wins", "strengths", "did_well"]) ||
+pick(g?.summary, ["wins", "strengths"]) ||
+[];
+
+const fixes =
+pick(g, ["fixes", "improvements", "needs_work", "coaching_points"]) ||
+pick(g?.summary, ["fixes", "improvements"]) ||
+[];
+
+// Delivery / presence (accept 0..1 or 0..100)
+const delivery = g.delivery || g.delivery_metrics || g.speaking || {};
+const confidence = asScore100(pick(delivery, ["confidence", "confidence_score"]));
+const tone = asScore100(pick(delivery, ["tone", "tone_score"]));
+const pacing = asScore100(
+pick(delivery, ["pacing", "pace", "speed", "pacing_score", "speed_score"])
+);
+const clarity = asScore100(pick(delivery, ["clarity", "clarity_score"]));
+const energy = asScore100(pick(delivery, ["energy", "energy_score", "enthusiasm"]));
+
+const talkRatio = pick(delivery, ["talk_ratio", "rep_talk_ratio", "talkToListenRatio"]) ?? null;
+const wpm = pick(delivery, ["wpm", "words_per_minute", "speed_wpm"]) ?? null;
+
+// Rubric categories
+const rubric =
+g.rubric || g.categories || g.breakdown || g.scores || g.scorecard || null;
+
+let rubricItems = [];
+if (rubric && typeof rubric === "object") {
+if (Array.isArray(rubric)) {
+rubricItems = rubric
+.map((it, idx) => {
+const label = it.label || it.name || it.category || `Category ${idx + 1}`;
+const score = asScore100(it.score ?? it.value ?? it.points);
+const notes = it.notes || it.feedback || it.commentary || "";
+return { label, score, notes };
+})
+.filter(Boolean);
+} else {
+rubricItems = Object.entries(rubric).map(([k, v]) => {
+if (v && typeof v === "object") {
+return {
+label: v.label || v.name || k,
+score: asScore100(v.score ?? v.value ?? v.points),
+notes: v.notes || v.feedback || ""
+};
+}
+return { label: k, score: asScore100(v), notes: "" };
+});
+}
+}
+
+const nextBestAction =
+pick(g, ["next_best_action", "next_step", "recommended_next_step"]) ||
+pick(g?.summary, ["next_best_action", "next_step"]) ||
+null;
+
+const oneLine =
+pick(g, ["summary", "one_liner", "headline"]) ||
+pick(g?.summary, ["headline", "one_liner"]) ||
+null;
+
+return {
+overall,
+stageReached,
+stuckPoints: Array.isArray(stuckPoints) ? stuckPoints : [stuckPoints].filter(Boolean),
+wins: Array.isArray(wins) ? wins : [wins].filter(Boolean),
+fixes: Array.isArray(fixes) ? fixes : [fixes].filter(Boolean),
+delivery: { confidence, tone, pacing, clarity, energy, talkRatio, wpm },
+rubricItems,
+nextBestAction,
+oneLine,
+raw: g
+};
+}
+
+function Bar({ label, value }) {
+const v = value == null ? null : Math.max(0, Math.min(100, Number(value)));
+return (
+<div style={{ marginBottom: 10 }}>
+<div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, opacity: 0.9 }}>
+<div>{label}</div>
+<div style={{ fontVariantNumeric: "tabular-nums" }}>{v == null ? "—" : `${v}/100`}</div>
+</div>
+<div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.10)", overflow: "hidden" }}>
+<div
+style={{
+height: "100%",
+width: v == null ? "0%" : `${v}%`,
+background: "linear-gradient(135deg, rgba(59,130,246,1), rgba(37,99,235,1))",
+borderRadius: 999,
+transition: "width 250ms ease"
+}}
+/>
+</div>
+</div>
+);
+}
+
+function Pill({ children }) {
+return (
+<span
+style={{
+display: "inline-flex",
+alignItems: "center",
+padding: "6px 10px",
+borderRadius: 999,
+background: "rgba(255,255,255,0.08)",
+border: "1px solid rgba(255,255,255,0.12)",
+fontSize: 12,
+marginRight: 8,
+marginBottom: 8
+}}
+>
+{children}
+</span>
+);
+}
+
+function Scorecard({ grade, profile }) {
+const n = normalizeGrade(grade);
+const [showRaw, setShowRaw] = useState(false);
+
+return (
+<div style={{ marginTop: 10 }}>
+{/* TOP ROW: Overall + Delivery */}
+<div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+<div
+style={{
+flex: "1 1 260px",
+minWidth: 260,
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 18
+}}
+>
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+<div style={{ fontSize: 13, opacity: 0.85 }}>Overall</div>
+<button
+onClick={() => setShowRaw((s) => !s)}
+style={{ padding: "8px 10px", borderRadius: 10, fontSize: 12 }}
+type="button"
+>
+{showRaw ? "Hide Raw" : "View Raw"}
+</button>
+</div>
+
+<div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 10 }}>
+<div style={{ fontSize: 44, fontWeight: 700, letterSpacing: -1 }}>
+{n.overall == null ? "—" : n.overall}
+</div>
+<div style={{ opacity: 0.8 }}>/100</div>
+</div>
+
+{n.oneLine && (
+<div style={{ marginTop: 8, fontSize: 13, opacity: 0.9, lineHeight: 1.35 }}>
+{n.oneLine}
+</div>
+)}
+
+<div style={{ marginTop: 12 }}>
+<Pill>{profile?.is_manager ? "Manager view" : "Rep view"}</Pill>
+{n.stageReached && <Pill>Stage: {String(n.stageReached)}</Pill>}
+{n.delivery?.wpm != null && <Pill>Speed: {n.delivery.wpm} wpm</Pill>}
+{n.delivery?.talkRatio != null && <Pill>Talk ratio: {n.delivery.talkRatio}</Pill>}
+</div>
+</div>
+
+<div
+style={{
+flex: "2 1 420px",
+minWidth: 320,
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 18
+}}
+>
+<h3 style={{ margin: 0, fontSize: 16 }}>Delivery & Presence</h3>
+<div style={{ marginTop: 12 }}>
+<Bar label="Confidence" value={n.delivery.confidence} />
+<Bar label="Tone" value={n.delivery.tone} />
+<Bar label="Pacing / Speed" value={n.delivery.pacing} />
+<Bar label="Clarity" value={n.delivery.clarity} />
+<Bar label="Energy" value={n.delivery.energy} />
+</div>
+</div>
+</div>
+
+{/* SECOND ROW: Wins / Fixes / Blockers */}
+<div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
+<div style={{ flex: "1 1 320px", minWidth: 280, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<h3 style={{ margin: 0, fontSize: 16 }}>What went well</h3>
+<div style={{ marginTop: 10 }}>
+{n.wins.length ? n.wins.map((w, i) => <Pill key={i}>{String(w)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
+</div>
+</div>
+
+<div style={{ flex: "1 1 320px", minWidth: 280, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<h3 style={{ margin: 0, fontSize: 16 }}>Needs coaching</h3>
+<div style={{ marginTop: 10 }}>
+{n.fixes.length ? n.fixes.map((f, i) => <Pill key={i}>{String(f)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
+</div>
+</div>
+
+<div style={{ flex: "1 1 320px", minWidth: 280, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<h3 style={{ margin: 0, fontSize: 16 }}>Where they got stuck</h3>
+<div style={{ marginTop: 10 }}>
+{n.stuckPoints.length ? n.stuckPoints.map((s, i) => <Pill key={i}>{String(s)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
+</div>
+</div>
+</div>
+
+{/* RUBRIC */}
+<div style={{ marginTop: 16, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<h3 style={{ margin: 0, fontSize: 16 }}>Skills rubric</h3>
+<div style={{ marginTop: 10 }}>
+{n.rubricItems?.length ? (
+n.rubricItems.map((it, idx) => (
+<div key={idx} style={{ padding: "10px 12px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", marginBottom: 10 }}>
+<div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+<div style={{ fontWeight: 650 }}>{it.label}</div>
+<div style={{ opacity: 0.9 }}>{it.score == null ? "—" : `${it.score}/100`}</div>
+</div>
+{it.notes ? <div style={{ marginTop: 6, opacity: 0.85, fontSize: 13, lineHeight: 1.35 }}>{it.notes}</div> : null}
+</div>
+))
+) : (
+<div style={{ opacity: 0.7 }}>No rubric categories yet (backend can add later).</div>
+)}
+</div>
+
+{n.nextBestAction ? (
+<div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.10)" }}>
+<div style={{ fontSize: 13, opacity: 0.8 }}>Next best action</div>
+<div style={{ marginTop: 6, fontSize: 14 }}>{String(n.nextBestAction)}</div>
+</div>
+) : null}
+</div>
+
+{/* RAW JSON */}
+{showRaw ? (
+<div style={{ marginTop: 14, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 14 }}>
+<div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>Raw grade payload</div>
+<pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, fontSize: 12, lineHeight: 1.35 }}>
+{JSON.stringify(n.raw, null, 2)}
+</pre>
+</div>
+) : null}
+</div>
+);
+}
 
 const supabase = createClient(
 process.env.NEXT_PUBLIC_SUPABASE_URL,
