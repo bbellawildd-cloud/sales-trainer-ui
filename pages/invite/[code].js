@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+mport { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -6,190 +7,249 @@ process.env.NEXT_PUBLIC_SUPABASE_URL,
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function ResetPasswordPage() {
+export default function InvitePage() {
+const router = useRouter();
+const { code } = router.query;
+
 const [loading, setLoading] = useState(true);
-const [stage, setStage] = useState("checking"); // checking | ready | updated | error
-const [errMsg, setErrMsg] = useState("");
+const [invite, setInvite] = useState(null);
+const [authUser, setAuthUser] = useState(null);
+
+const [repName, setRepName] = useState("");
+const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
-const [password2, setPassword2] = useState("");
-const [saving, setSaving] = useState(false);
 
-// When the user clicks the email link, Supabase redirects here with tokens in the URL.
-// Supabase JS will pick up the session automatically. We just confirm we have a session.
+const [working, setWorking] = useState(false);
+
 useEffect(() => {
-let mounted = true;
+supabase.auth.getSession().then(({ data }) => {
+setAuthUser(data.session?.user ?? null);
+});
 
-async function init() {
-try {
-// Give the client a moment to process URL tokens
-const { data } = await supabase.auth.getSession();
-const session = data?.session;
+const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+setAuthUser(session?.user ?? null);
+});
 
-if (!mounted) return;
-
-if (!session) {
-setStage("error");
-setErrMsg(
-"No reset session found. Please click the reset link from your email again."
-);
-} else {
-setStage("ready");
-}
-} catch (e) {
-if (!mounted) return;
-setStage("error");
-setErrMsg(e?.message || "Something went wrong.");
-} finally {
-if (mounted) setLoading(false);
-}
-}
-
-init();
-
-return () => {
-mounted = false;
-};
+return () => sub.subscription.unsubscribe();
 }, []);
 
-async function updatePassword() {
-setErrMsg("");
+useEffect(() => {
+if (!code) return;
 
-if (!password || password.length < 8) {
-setErrMsg("Password must be at least 8 characters.");
+async function loadInvite() {
+const { data, error } = await supabase
+.from("invites")
+.select("*")
+.eq("code", code)
+.single();
+
+if (error || !data) {
+alert("Invite not found or expired.");
+router.push("/");
 return;
 }
-if (password !== password2) {
-setErrMsg("Passwords do not match.");
-return;
+
+setInvite(data);
+setEmail(data.invited_email || "");
+setLoading(false);
 }
 
+loadInvite();
+}, [code, router]);
+
+async function signUpRep() {
+if (!email.trim() || !password.trim()) {
+return alert("Enter email and password.");
+}
+
+setWorking(true);
 try {
-setSaving(true);
+const { error } = await supabase.auth.signUp({
+email: email.trim(),
+password
+});
 
-const { error } = await supabase.auth.updateUser({ password });
-if (error) throw error;
+if (error) return alert(error.message);
 
-setStage("updated");
-
-// Optional: sign them out after update so they log in fresh
-// await supabase.auth.signOut();
-} catch (e) {
-setErrMsg(e?.message || "Failed to update password.");
-setStage("ready"); // keep them on form
+alert("Account created. Now sign in.");
 } finally {
-setSaving(false);
+setWorking(false);
 }
 }
 
-function goToLogin() {
-window.location.href = "/";
+async function signInRep() {
+if (!email.trim() || !password.trim()) {
+return alert("Enter email and password.");
+}
+
+setWorking(true);
+try {
+const { data, error } = await supabase.auth.signInWithPassword({
+email: email.trim(),
+password
+});
+
+if (error) return alert(error.message);
+
+setAuthUser(data.user);
+} finally {
+setWorking(false);
+}
+}
+
+async function joinCompany() {
+if (!authUser?.id) return alert("Sign in first.");
+if (!invite) return alert("Invite missing.");
+if (!repName.trim()) return alert("Enter your name.");
+
+setWorking(true);
+try {
+const { data: existing } = await supabase
+.from("profiles")
+.select("user_id")
+.eq("user_id", authUser.id)
+.maybeSingle();
+
+if (existing?.user_id) {
+alert("You already have a profile. Sending you to the app.");
+router.push("/");
+return;
+}
+
+const { error: profileErr } = await supabase.from("profiles").insert({
+user_id: authUser.id,
+company_id: invite.company_id,
+rep_name: repName.trim(),
+total_xp: 0,
+level: 1,
+is_manager: false
+});
+
+if (profileErr) return alert(profileErr.message);
+
+await supabase
+.from("invites")
+.update({ used_at: new Date().toISOString() })
+.eq("code", invite.code);
+
+alert("Joined company successfully.");
+router.push("/");
+} finally {
+setWorking(false);
+}
+}
+
+if (loading) {
+return (
+<div className="wrap">
+<div className="card">
+<h2>Loading invite...</h2>
+</div>
+<style jsx global>{styles}</style>
+</div>
+);
 }
 
 return (
-<div className="app">
-<div className="content">
+<div className="wrap">
 <div className="card">
-<h2>Reset Password</h2>
+<h2>Join Your Team</h2>
 <p className="muted">
-{stage === "checking" && "Checking reset link…"}
-{stage === "ready" && "Enter a new password for your account."}
-{stage === "updated" && "Your password has been updated."}
-{stage === "error" && "This reset link isn’t valid or expired."}
+You were invited to join this company as a rep.
 </p>
 
-{loading ? (
-<div className="muted" style={{ marginTop: 14 }}>
-Loading…
-</div>
-) : stage === "error" ? (
+{!authUser ? (
 <>
-<div className="errorBox">{errMsg}</div>
-<div className="row" style={{ marginTop: 12 }}>
-<button onClick={goToLogin}>Back to Login</button>
+<div className="field">
+<label>Email</label>
+<input
+value={email}
+onChange={(e) => setEmail(e.target.value)}
+placeholder="rep@company.com"
+/>
 </div>
-</>
-) : stage === "updated" ? (
-<>
-<div className="successBox">✅ Password updated successfully.</div>
-<div className="row" style={{ marginTop: 12 }}>
-<button onClick={goToLogin}>Go to Login</button>
-</div>
-</>
-) : (
-<>
-{errMsg ? <div className="errorBox">{errMsg}</div> : null}
 
 <div className="field">
-<label>New password</label>
+<label>Password</label>
 <input
 type="password"
 value={password}
 onChange={(e) => setPassword(e.target.value)}
-placeholder="At least 8 characters"
+placeholder="Create or enter password"
 />
 </div>
 
-<div className="field">
-<label>Confirm new password</label>
-<input
-type="password"
-value={password2}
-onChange={(e) => setPassword2(e.target.value)}
-placeholder="Re-enter password"
-/>
-</div>
-
-<div className="row wrap">
-<button onClick={updatePassword} disabled={saving}>
-{saving ? "Saving..." : "Update Password"}
+<div className="row">
+<button onClick={signInRep} disabled={working}>
+{working ? "Working..." : "Sign In"}
 </button>
-<button className="secondary" onClick={goToLogin} type="button">
-Back
+<button className="secondary" onClick={signUpRep} disabled={working}>
+{working ? "Working..." : "Sign Up"}
+</button>
+</div>
+</>
+) : (
+<>
+<div className="field">
+<label>Your Name</label>
+<input
+value={repName}
+onChange={(e) => setRepName(e.target.value)}
+placeholder="John Smith"
+/>
+</div>
+
+<div className="row">
+<button onClick={joinCompany} disabled={working}>
+{working ? "Joining..." : "Join Company"}
 </button>
 </div>
 </>
 )}
 </div>
-</div>
 
-<style jsx global>{globalCss}</style>
+<style jsx global>{styles}</style>
 </div>
 );
 }
 
-const globalCss = `
+const styles = `
 body {
 margin: 0;
 font-family: Inter, system-ui, sans-serif;
-background: linear-gradient(135deg, #0f172a, #1e293b);
+background: linear-gradient(135deg, #0f172a, #111827);
 color: white;
 }
+
 * { box-sizing: border-box; }
 
-.app {
+.wrap {
 min-height: 100vh;
-display: flex;
-flex-direction: column;
-}
-
-.content {
-max-width: 900px;
-margin: 60px auto;
-padding: 0 24px;
+display: grid;
+place-items: center;
+padding: 24px;
 }
 
 .card {
 width: 100%;
-background: rgba(255,255,255,0.05);
-backdrop-filter: blur(12px);
+max-width: 460px;
+background: rgba(255,255,255,0.06);
 border: 1px solid rgba(255,255,255,0.10);
 border-radius: 16px;
-padding: 22px;
-box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+padding: 24px;
+backdrop-filter: blur(12px);
 }
 
-h2 { margin: 0; font-size: 26px; }
-.muted { opacity: 0.8; font-size: 14px; line-height: 1.4; }
+h2 {
+margin: 0 0 10px 0;
+}
+
+.muted {
+opacity: 0.8;
+font-size: 14px;
+line-height: 1.4;
+margin-bottom: 14px;
+}
 
 .field {
 display: flex;
@@ -197,54 +257,50 @@ flex-direction: column;
 gap: 6px;
 margin: 12px 0;
 }
-.field label { font-size: 13px; opacity: 0.85; }
 
-.row { display: flex; align-items: center; gap: 10px; }
-.wrap { flex-wrap: wrap; }
+.field label {
+font-size: 13px;
+opacity: 0.85;
+}
+
+input {
+background: rgba(255,255,255,0.08);
+border: 1px solid rgba(255,255,255,0.16);
+color: white;
+padding: 10px 12px;
+border-radius: 12px;
+outline: none;
+width: 100%;
+}
+
+input::placeholder {
+color: rgba(255,255,255,0.55);
+}
+
+.row {
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+margin-top: 14px;
+}
 
 button {
 background: linear-gradient(135deg, #3b82f6, #2563eb);
 border: none;
 color: white;
 padding: 10px 16px;
-border-radius: 10px;
+border-radius: 12px;
 font-weight: 700;
 cursor: pointer;
-transition: 0.2s ease;
 }
-button:hover { transform: translateY(-1px); opacity: 0.96; }
-button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 button.secondary {
 background: rgba(255,255,255,0.08);
 border: 1px solid rgba(255,255,255,0.14);
 }
 
-input {
-background: rgba(255,255,255,0.08);
-border: 1px solid rgba(255,255,255,0.15);
-color: white;
-padding: 10px 12px;
-border-radius: 10px;
-outline: none;
-min-width: 260px;
-}
-input::placeholder { color: rgba(255,255,255,0.5); }
-
-.errorBox {
-margin-top: 12px;
-padding: 10px 12px;
-border-radius: 12px;
-background: rgba(239,68,68,0.12);
-border: 1px solid rgba(239,68,68,0.25);
-color: rgba(255,255,255,0.95);
-}
-.successBox {
-margin-top: 12px;
-padding: 10px 12px;
-border-radius: 12px;
-background: rgba(34,197,94,0.12);
-border: 1px solid rgba(34,197,94,0.22);
-color: rgba(255,255,255,0.95);
+button:disabled {
+opacity: 0.55;
+cursor: not-allowed;
 }
 `;
