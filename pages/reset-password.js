@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -7,59 +7,72 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 export default function ResetPassword() {
-const [ready, setReady] = useState(false);
-const [pw1, setPw1] = useState("");
-const [pw2, setPw2] = useState("");
-const [saving, setSaving] = useState(false);
 
-useEffect(() => {
-supabase.auth.getSession().then(({ data }) => setReady(!!data.session));
-const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setReady(!!s));
-return () => sub.subscription.unsubscribe();
-}, []);
+const [password, setPassword] = useState("");
+const [loading, setLoading] = useState(false);
 
 async function updatePassword() {
-if (pw1.length < 8) return alert("Password must be at least 8 characters.");
-if (pw1 !== pw2) return alert("Passwords do not match.");
+if (!password) return alert("Enter a new password");
 
-setSaving(true);
-const { error } = await supabase.auth.updateUser({ password: pw1 });
-setSaving(false);
+setLoading(true);
 
-if (error) return alert(error.message);
+const { error } = await supabase.auth.updateUser({
+password
+});
 
-alert("Password updated ✅");
+setLoading(false);
+
+if (error) {
+alert(error.message);
+return;
+}
+
+alert("Password updated! You can now login.");
 window.location.href = "/";
 }
 
 return (
-<div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
-<div style={{ width: "100%", maxWidth: 420, padding: 20, borderRadius: 14 }}>
-<h2>Reset password</h2>
+<div style={{
+minHeight:"100vh",
+display:"flex",
+alignItems:"center",
+justifyContent:"center",
+background:"#0f172a",
+color:"white"
+}}>
+<div style={{
+width:400,
+padding:30,
+background:"rgba(255,255,255,0.05)",
+borderRadius:12
+}}>
+<h2>Reset Password</h2>
 
-{!ready ? (
-<p>Open this page from the password reset email link.</p>
-) : (
-<>
 <input
 type="password"
 placeholder="New password"
-value={pw1}
-onChange={(e) => setPw1(e.target.value)}
-style={{ width: "100%", padding: 10, marginBottom: 10 }}
+value={password}
+onChange={(e)=>setPassword(e.target.value)}
+style={{
+width:"100%",
+padding:12,
+marginTop:10,
+borderRadius:8
+}}
 />
-<input
-type="password"
-placeholder="Confirm new password"
-value={pw2}
-onChange={(e) => setPw2(e.target.value)}
-style={{ width: "100%", padding: 10, marginBottom: 10 }}
-/>
-<button onClick={updatePassword} disabled={saving} style={{ width: "100%" }}>
-{saving ? "Saving..." : "Update password"}
+
+<button
+onClick={updatePassword}
+disabled={loading}
+style={{
+marginTop:15,
+width:"100%",
+padding:12
+}}
+>
+{loading ? "Updating..." : "Update Password"}
 </button>
-</>
-)}
+
 </div>
 </div>
 );
