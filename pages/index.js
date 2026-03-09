@@ -164,11 +164,37 @@ marginBottom: 8
 </span>
 );
 }
+function getBadgesFromGrade(raw) {
+const g = raw || {};
+const rubric = g.rubric || g.scores || {};
+
+const badges = [];
+
+const opener = Number(rubric.opener ?? 0);
+const discovery = Number(rubric.discovery ?? 0);
+const objections = Number(rubric.objection_handling ?? 0);
+const closing = Number(rubric.closing ?? 0);
+const clarity = Number(rubric.clarity ?? 0);
+const confidence = Number(g?.delivery?.confidence ?? 0);
+
+if (opener >= 85) badges.push("Rapport Builder");
+if (discovery >= 85) badges.push("Discovery Master");
+if (objections >= 85) badges.push("Objection Slayer");
+if (closing >= 85) badges.push("Closing Machine");
+if (clarity >= 85) badges.push("Clear Communicator");
+if (confidence >= 85) badges.push("Confident Closer");
+
+if (!badges.length && Number(g.overall_score ?? 0) >= 70) {
+badges.push("Solid Session");
+}
+
+return badges;
+}
 
 function Scorecard({ grade, profile }) {
 const n = normalizeGrade(grade);
 const [showRaw, setShowRaw] = useState(false);
-
+const badges = getBadgesFromGrade(grade);
 return (
 <div className="card">
 <div className="headerRow">
@@ -216,6 +242,18 @@ padding: 18
 {n.delivery?.wpm != null && <Pill>Speed: {n.delivery.wpm} wpm</Pill>}
 {n.delivery?.talkRatio != null && <Pill>Talk ratio: {n.delivery.talkRatio}</Pill>}
 </div>
+
+{badges.length ? (
+<div style={{ marginTop: 12 }}>
+<div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>Unlocked badges</div>
+<div>
+{badges.map((badge, i) => (
+<Pill key={i}>🏆 {badge}</Pill>
+))}
+</div>
+</div>
+) : null}
+
 </div>
 
 <div
