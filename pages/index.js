@@ -318,10 +318,14 @@ Home Page
 ========================================================= */
 export default function Home() {
 // Auth / profile
-const [authUser, setAuthUser] = useState(null);
+const [authUser, setAuthUser] = useState("");
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
-
+  
+const [inviteName, setInviteName] = useState("");
+const [inviteEmail, setInviteEmail] = useState("");
+const [sendingInvite, setSendingInvite] = useState(false);
+  
 const [repName, setRepName] = useState("");
 const [companyName, setCompanyName] = useState("");
 const [profile, setProfile] = useState(null);
