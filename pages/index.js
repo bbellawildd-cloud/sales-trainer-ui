@@ -12,7 +12,7 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /* =========================================================
-SCORECARD HELPERS + UI (SINGLE COPY — DO NOT DUPLICATE)
+SCORECARD HELPERS + UI
 ========================================================= */
 function asScore100(v) {
 if (v == null) return null;
@@ -318,19 +318,19 @@ Home Page
 ========================================================= */
 export default function Home() {
 // Auth / profile
-const [authUser, setAuthUser] = useState("");
+const [authUser, setAuthUser] = useState(null);
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
-  
+
 const [inviteName, setInviteName] = useState("");
 const [inviteEmail, setInviteEmail] = useState("");
 const [sendingInvite, setSendingInvite] = useState(false);
-  
+
 const [repName, setRepName] = useState("");
 const [companyName, setCompanyName] = useState("");
 const [profile, setProfile] = useState(null);
 
-// Company settings (industry locked to reps)
+// Company settings
 const [company, setCompany] = useState(null);
 const [companyIndustry, setCompanyIndustry] = useState("");
 const [savingCompany, setSavingCompany] = useState(false);
@@ -344,7 +344,7 @@ const [reply, setReply] = useState("");
 const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
 
-// Rep training difficulty only (industry locked from company)
+// Difficulty
 const [difficulty, setDifficulty] = useState(2);
 
 // Voice
@@ -424,6 +424,7 @@ setProfile(data);
 
 async function loadCompany(companyId) {
 if (!companyId) return;
+
 const { data, error } = await supabase
 .from("companies")
 .select("id, name, industry")
@@ -469,7 +470,6 @@ redirectTo: `${window.location.origin}/reset-password`,
 });
 
 if (error) return alert(error.message);
-
 alert("Reset email sent ✅ Check inbox/spam.");
 }
 
@@ -523,6 +523,7 @@ if (!companyIndustry) return alert("Pick an industry first.");
 
 try {
 setSavingCompany(true);
+
 const { error } = await supabase
 .from("companies")
 .update({ industry: companyIndustry })
@@ -611,6 +612,7 @@ const lbRes = await fetch(`${API_BASE}/api/leaderboard?userId=${profile.user_id}
 const lb = await lbRes.json();
 if (lbRes.ok) setLeaderboard(lb.leaderboard || []);
 }
+
 async function sendRepInvite() {
 try {
 if (!inviteEmail.trim()) return alert("Enter rep email.");
@@ -625,18 +627,21 @@ repName: inviteName,
 repEmail: inviteEmail
 })
 });
-// Invite link (manager)
-async function createInviteLink() {
-if (!profile?.company_id) return;
-const code = crypto.randomUUID();
 
-const { error } = await supabase.from("invites").insert({
-code,
-company_id: profile.company_id
-});
+const data = await res.json();
 
-if (error) return alert(error.message);
-alert(`Invite link created:\n${window.location.origin}/invite/${code}`);
+if (!res.ok) {
+throw new Error(data.error || data.details || "Failed to send invite");
+}
+
+alert("✅ Invite sent!");
+setInviteName("");
+setInviteEmail("");
+} catch (err) {
+alert(err.message || "Invite failed");
+} finally {
+setSendingInvite(false);
+}
 }
 
 // XP progress
@@ -671,16 +676,17 @@ onChange={(e) => setPassword(e.target.value)}
 />
 </div>
 
-<div className="row">
+<div className="row wrap">
 <button onClick={signIn}>Sign In</button>
 <button className="secondary" onClick={signUp}>
 Sign Up
 </button>
+</div>
+
 <div style={{ marginTop: 10 }}>
-<button className="secondary" onClick={forgotPassword}>
+<button className="secondary" onClick={forgotPassword} type="button">
 Forgot password?
 </button>
-</div>
 </div>
 </div>
 </div>
@@ -716,7 +722,7 @@ onChange={(e) => setCompanyName(e.target.value)}
 />
 </div>
 
-<div className="row">
+<div className="row wrap">
 <button onClick={createCompanyAndProfile}>Create Company</button>
 <button className="secondary" onClick={signOut}>
 Sign Out
@@ -869,6 +875,8 @@ Select…
 <button className="secondary" onClick={() => (window.location.href = "/dashboard")} type="button">
 Manager Dashboard
 </button>
+</div>
+
 <div style={{ marginTop: 14 }}>
 <h3 style={{ marginBottom: 8 }}>Invite a rep</h3>
 
@@ -893,8 +901,6 @@ onChange={(e) => setInviteEmail(e.target.value)}
 <button onClick={sendRepInvite} disabled={sendingInvite}>
 {sendingInvite ? "Sending..." : "Send Invite Email"}
 </button>
-</div>
-
 </div>
 </div>
 ) : null}
@@ -924,7 +930,6 @@ onChange={(e) => setInviteEmail(e.target.value)}
 </div>
 </div>
 
-{/* IMPORTANT: style tag must be INSIDE the root JSX return */}
 <style jsx global>{globalCss}</style>
 </div>
 );
@@ -1034,9 +1039,9 @@ line-height: 1.4;
 
 .smallText { font-size: 12px; }
 
-.headerRow{
-display:flex;
-align-items:flex-start;
+.headerRow {
+display: flex;
+align-items: flex-start;
 justify-content: space-between;
 gap: 12px;
 }
