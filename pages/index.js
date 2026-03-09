@@ -383,7 +383,7 @@ const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
 
 // Difficulty
-const difficulty, setDifficulty = useMemo(() => {
+const difficulty = useMemo(() => {
   if (!profile) return 1;
 
   if (profile.level <= 2) return 1;
