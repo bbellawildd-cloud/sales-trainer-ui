@@ -396,19 +396,84 @@ const difficulty = useMemo(() => {
   
 // Voice
 const recognitionRef = useRef(null);
+const silenceTimerRef = useRef(null);
+const finalTranscriptRef = useRef("");
+
 const [listening, setListening] = useState(false);
 const [speaking, setSpeaking] = useState(false);
+const [voices, setVoices] = useState([]);
+const [selectedVoiceName, setSelectedVoiceName] = useState("");
 
 useEffect(() => {
 if (typeof window === "undefined") return;
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SpeechRecognition) return;
+const SpeechRecognition =
+window.SpeechRecognition || window.webkitSpeechRecognition;
 
+if (SpeechRecognition) {
 const rec = new SpeechRecognition();
-rec.continuous = false;
+rec.continuous = true;
+rec.interimResults = true;
 rec.lang = "en-US";
 recognitionRef.current = rec;
+
+rec.onstart = () => {
+finalTranscriptRef.current = "";
+setListening(true);
+};
+
+rec.onresult = (event) => {
+let interim = "";
+let finalText = finalTranscriptRef.current;
+
+for (let i = event.resultIndex; i < event.results.length; i += 1) {
+const transcript = event.results[i][0]?.transcript || "";
+if (event.results[i].isFinal) {
+finalText += ` ${transcript}`;
+} else {
+interim += ` ${transcript}`;
+}
+}
+
+finalTranscriptRef.current = finalText.trim();
+setMessage(`${finalText} ${interim}`.trim());
+
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+silenceTimerRef.current = setTimeout(() => {
+stopListeningAndSend();
+}, 1800);
+};
+
+rec.onerror = () => {
+setListening(false);
+};
+
+rec.onend = () => {
+setListening(false);
+};
+}
+
+const loadVoices = () => {
+const available = window.speechSynthesis?.getVoices?.() || [];
+setVoices(available);
+
+const preferred =
+available.find((v) => /Siri|Google US English|Jenny|Aria|Guy|Christopher/i.test(v.name)) ||
+available.find((v) => /en-US/i.test(v.lang)) ||
+available[0];
+
+if (preferred) setSelectedVoiceName(preferred.name);
+};
+
+loadVoices();
+
+if (window.speechSynthesis) {
+window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+return () => {
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+};
 }, []);
 
 function startListening() {
@@ -418,29 +483,55 @@ alert("Speech recognition not supported. Use Chrome on desktop.");
 return;
 }
 
-setListening(true);
+setMessage("");
+finalTranscriptRef.current = "";
 recognition.start();
+}
 
-recognition.onresult = (event) => {
-const transcript = event.results?.[0]?.[0]?.transcript || "";
-setMessage(transcript);
-setListening(false);
-};
+function stopListeningAndSend() {
+const recognition = recognitionRef.current;
+if (recognition && listening) {
+recognition.stop();
+}
 
-recognition.onerror = () => setListening(false);
-recognition.onend = () => setListening(false);
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+const finalText = (finalTranscriptRef.current || message || "").trim();
+if (finalText) {
+sendVoiceMessage(finalText);
+}
+}
+
+function stopListeningOnly() {
+const recognition = recognitionRef.current;
+if (recognition && listening) recognition.stop();
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 }
 
 function speak(text) {
 if (!text || typeof window === "undefined") return;
 
 window.speechSynthesis.cancel();
-const u = new SpeechSynthesisUtterance(text);
-u.onstart = () => setSpeaking(true);
-u.onend = () => setSpeaking(false);
-u.onerror = () => setSpeaking(false);
-window.speechSynthesis.speak(u);
+
+const utterance = new SpeechSynthesisUtterance(text);
+const pickedVoice =
+voices.find((v) => v.name === selectedVoiceName) ||
+voices.find((v) => /en-US/i.test(v.lang)) ||
+voices[0];
+
+if (pickedVoice) utterance.voice = pickedVoice;
+
+utterance.rate = 1;
+utterance.pitch = 1;
+utterance.volume = 1;
+
+utterance.onstart = () => setSpeaking(true);
+utterance.onend = () => setSpeaking(false);
+utterance.onerror = () => setSpeaking(false);
+
+window.speechSynthesis.speak(utterance);
 }
+
 
 // Auth listeners
 useEffect(() => {
@@ -591,6 +682,19 @@ return company?.industry || companyIndustry || "pest";
 }, [company?.industry, companyIndustry]);
 
 async function startSession() {
+  const faceSeed = Math.random().toString(36).substring(7);
+
+const stylePool = [
+"adventurer",
+"adventurer-neutral",
+"fun-emoji",
+"micah",
+"lorelei"
+];
+
+const pickedStyle = stylePool[Math.floor(Math.random() * stylePool.length)];
+
+const faceUrl = `https://api.dicebear.com/8.x/${pickedStyle}/png?seed=${faceSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 if (!profile) return alert("No profile loaded.");
 if (!lockedIndustry) return alert("Manager must set company industry first.");
 
@@ -612,12 +716,33 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Failed to start session");
 
 setSession(data.session);
-setFaceUrl(data.faceUrl || "");
+setFaceUrl(faceUrl);
 }
 
 async function sendMessage() {
 if (!session) return alert("Start a session first.");
 if (!message.trim()) return;
+async function sendVoiceMessage(transcript) {
+if (!session) return alert("Start a session first.");
+if (!transcript.trim()) return;
+
+const res = await fetch(`${API_BASE}/api/chat`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+userId: profile.user_id,
+sessionId: session.id,
+message: transcript.trim()
+})
+});
+
+const data = await res.json();
+if (!res.ok) return alert(data.error || "Chat failed");
+
+setReply(data.reply);
+speak(data.reply);
+setMessage("");
+}
 
 const res = await fetch(`${API_BASE}/api/chat`, {
 method: "POST",
@@ -835,15 +960,15 @@ Level {difficulty}
 
 {session ? (
 <>
-<div className="sessionBox">
+<div className="sessionBox">width={72} height={72} className
 <div className="muted">
 Session: <code>{session.id}</code>
 </div>
 
-<div className="personaRow">
-{faceUrl ? (
-<img src={faceUrl} alt="Prospect face" width={56} height={56} className="avatar" />
-) : null}
+<div className={speaking ? "avatarWrap speaking" : listening ? "avatarWrap listening" : "avatarwrap"}>
+  {faceUrl ? (
+    <img src={faceUrl} alt="Prospect" className="avatar" />
+  ) : null}
 <div>
 <div className="personaTitle">
 <b>Prospect persona:</b> {session.persona}
@@ -854,28 +979,40 @@ Session: <code>{session.id}</code>
 </div>
 
 <div className="chatControls">
-<input
-className="chatInput"
-placeholder="Say your pitch..."
-value={message}
-onChange={(e) => setMessage(e.target.value)}
-/>
-
-<button onClick={sendMessage}>Send</button>
-
-<button className="secondary" onClick={startListening} type="button">
-{listening ? "Listening..." : "🎤 Talk"}
+<button
+className={listening ? "voiceBtn active" : "voiceBtn"}
+onClick={listening ? stopListeningAndSend : startListening}
+type="button"
+>
+{listening ? "🛑 Finish & Send" : "🎤 Tap to Talk"}
 </button>
 
-<button className="secondary" onClick={() => speak(reply)} disabled={!reply} type="button">
+<button
+className="secondary"
+onClick={stopListeningOnly}
+disabled={!listening}
+type="button"
+>
+Stop
+</button>
+
+<button
+className="secondary"
+onClick={() => speak(reply)}
+disabled={!reply}
+type="button"
+>
 {speaking ? "Speaking..." : "🔊 Replay"}
 </button>
 </div>
 
+
 <div className="replyBox">
-<div className="replyLabel">Prospect</div>
-<div className="replyText">{reply || "—"}</div>
-</div>
+  <div className="replyLabel">{listening ? "You" : "Prospect"}</div>
+  <div className="replyText">
+    {listening ? (message || "Listening...") : (reply || "-")}
+  </div>
+    </div>
 
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
@@ -1273,4 +1410,65 @@ border: 1px solid rgba(255,255,255,0.10);
 .lbRank { opacity: 0.7; font-size: 12px; }
 .lbName { font-weight: 800; }
 .lbRight { opacity: 0.9; }
+
+.voiceBtn {
+background: linear-gradient(135deg, #06b6d4, #3b82f6);
+min-width: 170px;
+}
+
+.voiceBtn.active {
+background: linear-gradient(135deg, #ef4444, #f97316);
+animation: pulseGlow 1s infinite;
+}
+
+.avatarWrap {
+width: 76px;
+height: 76px;
+border-radius: 18px;
+display: flex;
+align-items: center;
+justify-content: center;
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.14);
+transition: transform 0.2s ease;
+}
+
+.avatarWrap.speaking {
+animation: bobTalk 0.8s infinite ease-in-out;
+}
+
+.avatarWrap.listening {
+animation: nodListen 1.2s infinite ease-in-out;
+}
+
+.avatar {
+width: 72px;
+height: 72px;
+border-radius: 16px;
+border: 1px solid rgba(255,255,255,0.14);
+object-fit: cover;
+}
+
+@keyframes bobTalk {
+0% { transform: translateY(0px) rotate(0deg) scale(1); }
+25% { transform: translateY(-2px) rotate(-2deg) scale(1.02); }
+50% { transform: translateY(0px) rotate(2deg) scale(1.03); }
+75% { transform: translateY(-1px) rotate(-1deg) scale(1.02); }
+100% { transform: translateY(0px) rotate(0deg) scale(1); }
+}
+
+@keyframes nodListen {
+0% { transform: rotate(0deg); }
+25% { transform: rotate(-3deg); }
+50% { transform: rotate(0deg); }
+75% { transform: rotate(3deg); }
+100% { transform: rotate(0deg); }
+}
+
+@keyframes pulseGlow {
+0% { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
+50% { box-shadow: 0 0 22px rgba(239,68,68,0.45); }
+100% { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
+}
+
 `;
