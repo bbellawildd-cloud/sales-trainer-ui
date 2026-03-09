@@ -12,11 +12,15 @@ if (typeof scores?.overall_score === "number") return scores.overall_score;
 
 const rubric = scores?.rubric;
 if (rubric && typeof rubric === "object") {
-const vals = Object.values(rubric).map((v) => Number(v)).filter((n) => Number.isFinite(n));
+const vals = Object.values(rubric)
+.map((v) => Number(v))
+.filter((n) => Number.isFinite(n));
 if (vals.length) return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 }
 
-const vals = Object.values(scores).map((v) => Number(v)).filter((n) => Number.isFinite(n));
+const vals = Object.values(scores)
+.map((v) => Number(v))
+.filter((n) => Number.isFinite(n));
 if (vals.length) return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 
 return null;
@@ -55,6 +59,7 @@ if (!scores || typeof scores !== "object") return "—";
 if (Array.isArray(scores.wins) && scores.wins.length) return String(scores.wins[0]);
 return "—";
 }
+
 function buildTeamHeatmap(evaluations) {
 const buckets = {
 opener: [],
@@ -100,7 +105,6 @@ if (score >= 55) return "rgba(250,204,21,0.28)";
 return "rgba(239,68,68,0.28)";
 }
 
-
 function StatCard({ label, value, sub }) {
 return (
 <div className="statCard">
@@ -117,6 +121,7 @@ const [profile, setProfile] = useState(null);
 const [company, setCompany] = useState(null);
 const [reps, setReps] = useState([]);
 const [evaluations, setEvaluations] = useState([]);
+const [sessions, setSessions] = useState([]);
 const [loading, setLoading] = useState(true);
 const [errorText, setErrorText] = useState("");
 
@@ -185,6 +190,16 @@ const { data: evalRows, error: evalErr } = await supabase
 
 if (evalErr) throw new Error(evalErr.message);
 setEvaluations(evalRows || []);
+
+const { data: sessionRows, error: sessionErr } = await supabase
+.from("sessions")
+.select("id, user_id, created_at, ended_at, industry, difficulty, persona")
+.eq("company_id", profileRow.company_id)
+.order("created_at", { ascending: false })
+.limit(500);
+
+if (sessionErr) throw new Error(sessionErr.message);
+setSessions(sessionRows || []);
 } catch (err) {
 setErrorText(err.message || "Failed to load dashboard");
 } finally {
@@ -196,9 +211,15 @@ loadDashboard();
 }, [authUser]);
 
 const repRows = useMemo(() => {
+const latestSessionByUser = new Map();
 const latestByUser = new Map();
 const countsByUser = new Map();
 const totalScoreByUser = new Map();
+
+for (const row of sessions) {
+const userId = row.user_id;
+if (!latestSessionByUser.has(userId)) latestSessionByUser.set(userId, row);
+}
 
 for (const row of evaluations) {
 const userId = row.user_id;
@@ -217,6 +238,7 @@ return reps
 .filter((r) => !r.is_manager)
 .map((rep) => {
 const latest = latestByUser.get(rep.user_id) || null;
+const latestSession = latestSessionByUser.get(rep.user_id) || null;
 const scoreBucket = totalScoreByUser.get(rep.user_id);
 const avgScore = scoreBucket ? Math.round(scoreBucket.total / scoreBucket.count) : null;
 
@@ -228,11 +250,14 @@ avgScore,
 latestSummary: latest?.summary || "—",
 topCoach: latest ? getTopCoachFromScores(latest.scores) : "No coaching data yet",
 topWin: latest ? getTopWinFromScores(latest.scores) : "—",
-lastActivity: latest?.created_at || null
+lastActivity: latest?.created_at || null,
+latestSessionAt: latestSession?.created_at || null,
+latestIndustry: latestSession?.industry || null,
+latestDifficulty: latestSession?.difficulty || null
 };
 })
 .sort((a, b) => (b.total_xp || 0) - (a.total_xp || 0));
-}, [reps, evaluations]);
+}, [reps, evaluations, sessions]);
 
 const stats = useMemo(() => {
 const repCount = repRows.length;
@@ -251,6 +276,10 @@ const topRep = repRows[0]?.rep_name || "—";
 return { repCount, totalSessions, avgTeamScore, topRep };
 }, [repRows]);
 
+const teamHeatmap = useMemo(() => {
+return buildTeamHeatmap(evaluations);
+}, [evaluations]);
+
 if (!authUser) {
 return (
 <div className="app">
@@ -265,9 +294,7 @@ return (
 </div>
 );
 }
-const teamHeatmap = useMemo(() => {
-  return buildTeamHeatmap(evaluations);
-}, [evaluations]);
+
 return (
 <div className="app">
 <div className="topbar">
@@ -300,30 +327,6 @@ If this is a permissions issue, your Supabase policies may need to allow manager
 <div className="card">
 <div className="headerRow">
 <div>
-  <div className="card">
-<h3>Team Skill Heatmap</h3>
-<p className="muted">Average team performance by rubric category.</p>
-
-{!teamHeatmap.length ? (
-<div className="emptyState">No heatmap data yet.</div>
-) : (
-<div className="heatmapGrid">
-{teamHeatmap.map((item) => (
-<div
-key={item.key}
-className="heatCell"
-style={{ background: heatColor(item.avg) }}
->
-<div className="heatLabel">{item.label}</div>
-<div className="heatValue">
-{item.avg == null ? "—" : `${item.avg}/100`}
-</div>
-</div>
-))}
-</div>
-)}
-</div>
-
 <h2>{company?.name || "Company"}</h2>
 <p className="muted">
 Industry: <b>{company?.industry || "—"}</b>
@@ -352,6 +355,7 @@ Industry: <b>{company?.industry || "—"}</b>
 <div>Level / XP</div>
 <div>Sessions</div>
 <div>Latest Score</div>
+<div>Last Practiced</div>
 <div>Top Coaching Focus</div>
 </div>
 
@@ -359,11 +363,11 @@ Industry: <b>{company?.industry || "—"}</b>
 <div className="repTableRow" key={rep.user_id}>
 <div>
 <div
-  className="repName"
-  style={{ cursor: "pointer", textDecoration: "underline" }}
-  onClick={() => (window.location.href = '/rep/${rep.user_id}')}
+className="repName"
+style={{ cursor: "pointer", textDecoration: "underline" }}
+onClick={() => (window.location.href = `/rep/${rep.user_id}`)}
 >
-  {rep.rep_name || "Rep"}
+{rep.rep_name || "Rep"}
 </div>
 <div className="repSub">Best win: {rep.topWin}</div>
 </div>
@@ -378,6 +382,15 @@ Industry: <b>{company?.industry || "—"}</b>
 <div>
 {rep.latestScore == null ? "—" : `${rep.latestScore}/100`}
 {rep.avgScore != null ? <div className="repSub">Avg {rep.avgScore}/100</div> : null}
+</div>
+
+<div>
+{rep.latestSessionAt
+? new Date(rep.latestSessionAt).toLocaleDateString()
+: "—"}
+{rep.latestDifficulty ? (
+<div className="repSub">Lvl {rep.latestDifficulty} training</div>
+) : null}
 </div>
 
 <div>{rep.topCoach}</div>
@@ -422,6 +435,30 @@ return (
 </div>
 );
 })}
+</div>
+)}
+</div>
+
+<div className="card">
+<h3>Team Skill Heatmap</h3>
+<p className="muted">Average team performance by rubric category.</p>
+
+{!teamHeatmap.length ? (
+<div className="emptyState">No heatmap data yet.</div>
+) : (
+<div className="heatmapGrid">
+{teamHeatmap.map((item) => (
+<div
+key={item.key}
+className="heatCell"
+style={{ background: heatColor(item.avg) }}
+>
+<div className="heatLabel">{item.label}</div>
+<div className="heatValue">
+{item.avg == null ? "—" : `${item.avg}/100`}
+</div>
+</div>
+))}
 </div>
 )}
 </div>
@@ -617,7 +654,7 @@ gap: 10px;
 .repTableHead,
 .repTableRow {
 display: grid;
-grid-template-columns: 1.1fr 0.9fr 0.6fr 0.8fr 1.2fr;
+grid-template-columns: 1.1fr 0.9fr 0.6fr 0.8fr 0.9fr 1.2fr;
 gap: 12px;
 align-items: center;
 }
@@ -717,6 +754,7 @@ background: rgba(255,255,255,0.04);
 border: 1px solid rgba(255,255,255,0.08);
 opacity: 0.8;
 }
+
 .heatmapGrid {
 margin-top: 14px;
 display: grid;
@@ -747,5 +785,4 @@ font-weight: 800;
 grid-template-columns: 1fr;
 }
 }
-
 `;
