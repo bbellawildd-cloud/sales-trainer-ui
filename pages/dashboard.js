@@ -279,6 +279,47 @@ return { repCount, totalSessions, avgTeamScore, topRep };
 const teamHeatmap = useMemo(() => {
 return buildTeamHeatmap(evaluations);
 }, [evaluations]);
+const repRows = useMemo(() => {
+const latestByUser = new Map();
+const countsByUser = new Map();
+
+for (const row of evaluations) {
+const userId = row.user_id;
+if (!latestByUser.has(userId)) latestByUser.set(userId, row);
+countsByUser.set(userId, (countsByUser.get(userId) || 0) + 1);
+}
+
+return reps
+.filter((r) => !r.is_manager)
+.map((rep) => {
+const latest = latestByUser.get(rep.user_id) || null;
+
+return {
+...rep,
+sessionsCompleted: countsByUser.get(rep.user_id) || 0,
+latestScore: latest ? scoreFromEvaluationRow(latest) : null,
+latestSummary: latest?.summary || "—",
+topCoach: latest ? getTopCoachFromScores(latest.scores) : "No coaching data yet",
+topWin: latest ? getTopWinFromScores(latest.scores) : "—"
+};
+});
+}, [reps, evaluations]);
+
+const stats = useMemo(() => {
+const repCount = repRows.length;
+const totalSessions = repRows.reduce((sum, r) => sum + r.sessionsCompleted, 0);
+
+return {
+repCount,
+totalSessions,
+avgTeamScore: "—",
+topRep: repRows[0]?.rep_name || "—"
+};
+}, [repRows]);
+
+const teamHeatmap = useMemo(() => {
+return buildTeamHeatmap(evaluations);
+}, [evaluations]);
 
 if (!authUser) {
 return (
