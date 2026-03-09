@@ -55,6 +55,51 @@ if (!scores || typeof scores !== "object") return "—";
 if (Array.isArray(scores.wins) && scores.wins.length) return String(scores.wins[0]);
 return "—";
 }
+unction buildTeamHeatmap(evaluations) {
+const buckets = {
+opener: [],
+discovery: [],
+value_proposition: [],
+objection_handling: [],
+closing: [],
+clarity: [],
+conciseness: [],
+curiosity_questions: [],
+active_listening: [],
+control_of_call: []
+};
+
+for (const row of evaluations) {
+const rubric = row?.scores?.rubric;
+if (!rubric || typeof rubric !== "object") continue;
+
+for (const key of Object.keys(buckets)) {
+const val = Number(rubric[key]);
+if (Number.isFinite(val)) buckets[key].push(val);
+}
+}
+
+return Object.entries(buckets).map(([key, vals]) => {
+const avg = vals.length
+? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
+: null;
+
+return {
+key,
+label: key.replaceAll("_", " "),
+avg
+};
+});
+}
+
+function heatColor(score) {
+if (score == null) return "rgba(255,255,255,0.05)";
+if (score >= 85) return "rgba(34,197,94,0.28)";
+if (score >= 70) return "rgba(59,130,246,0.28)";
+if (score >= 55) return "rgba(250,204,21,0.28)";
+return "rgba(239,68,68,0.28)";
+}
+
 
 function StatCard({ label, value, sub }) {
 return (
@@ -220,7 +265,9 @@ return (
 </div>
 );
 }
-
+const teamHeatmap = useMemo(() => {
+  return buildTeamHeatmap(evaluations);
+}, [evaluations]);
 return (
 <div className="app">
 <div className="topbar">
