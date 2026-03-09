@@ -345,8 +345,16 @@ const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
 
 // Difficulty
-const [difficulty, setDifficulty] = useState(2);
+const difficulty, setDifficulty = useMemo(() => {
+  if (!profile) return 1;
 
+  if (profile.level <= 2) return 1;
+  if (profile.level <= 4) return 2;
+  if (profile.level <= 6) return 3;
+  if (profile.level <= 8) return 4;
+
+  return 5;
+}, [profile]);
 // Voice
 const recognitionRef = useRef(null);
 const [listening, setListening] = useState(false);
@@ -777,14 +785,10 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 <div className="panel">
 <div className="row wrap">
 <div className="fieldInline">
-<label>Difficulty</label>
-<select value={difficulty} onChange={(e) => setDifficulty(parseInt(e.target.value, 10))}>
-<option value={1}>1</option>
-<option value={2}>2</option>
-<option value={3}>3</option>
-<option value={4}>4</option>
-<option value={5}>5</option>
-</select>
+<label>Training Level</label>
+<div className="pill">
+Level {difficulty}
+</div>
 </div>
 
 <button onClick={startSession}>Start Session</button>
