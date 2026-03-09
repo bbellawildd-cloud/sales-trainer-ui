@@ -55,7 +55,7 @@ if (!scores || typeof scores !== "object") return "—";
 if (Array.isArray(scores.wins) && scores.wins.length) return String(scores.wins[0]);
 return "—";
 }
-unction buildTeamHeatmap(evaluations) {
+function buildTeamHeatmap(evaluations) {
 const buckets = {
 opener: [],
 discovery: [],
@@ -300,6 +300,30 @@ If this is a permissions issue, your Supabase policies may need to allow manager
 <div className="card">
 <div className="headerRow">
 <div>
+  <div className="card">
+<h3>Team Skill Heatmap</h3>
+<p className="muted">Average team performance by rubric category.</p>
+
+{!teamHeatmap.length ? (
+<div className="emptyState">No heatmap data yet.</div>
+) : (
+<div className="heatmapGrid">
+{teamHeatmap.map((item) => (
+<div
+key={item.key}
+className="heatCell"
+style={{ background: heatColor(item.avg) }}
+>
+<div className="heatLabel">{item.label}</div>
+<div className="heatValue">
+{item.avg == null ? "—" : `${item.avg}/100`}
+</div>
+</div>
+))}
+</div>
+)}
+</div>
+
 <h2>{company?.name || "Company"}</h2>
 <p className="muted">
 Industry: <b>{company?.industry || "—"}</b>
@@ -687,4 +711,35 @@ background: rgba(255,255,255,0.04);
 border: 1px solid rgba(255,255,255,0.08);
 opacity: 0.8;
 }
+.heatmapGrid {
+margin-top: 14px;
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+gap: 10px;
+}
+
+.heatCell {
+padding: 12px;
+border-radius: 12px;
+border: 1px solid rgba(255,255,255,0.10);
+}
+
+.heatLabel {
+font-size: 12px;
+opacity: 0.75;
+text-transform: capitalize;
+}
+
+.heatValue {
+margin-top: 6px;
+font-size: 22px;
+font-weight: 800;
+}
+
+@media (max-width: 700px) {
+.heatmapGrid {
+grid-template-columns: 1fr;
+}
+}
+
 `;
