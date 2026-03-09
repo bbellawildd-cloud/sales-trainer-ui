@@ -358,7 +358,13 @@ Industry: <b>{company?.industry || "—"}</b>
 {repRows.map((rep) => (
 <div className="repTableRow" key={rep.user_id}>
 <div>
-<div className="repName">{rep.rep_name || "Rep"}</div>
+<div
+  className="repName"
+  style={{ cursor: "pointer", textDecoration: "underline" }}
+  onClick={() => (window.location.href = '/rep/${rep.user_id}')}
+>
+  {rep.rep_name || "Rep"}
+</div>
 <div className="repSub">Best win: {rep.topWin}</div>
 </div>
 
