@@ -392,7 +392,8 @@ const difficulty = useMemo(() => {
   if (profile.level <= 8) return 4;
 
   return 5;
-}, [profile]);
+}, [profile?.level]);
+  
 // Voice
 const recognitionRef = useRef(null);
 const [listening, setListening] = useState(false);
