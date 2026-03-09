@@ -611,7 +611,20 @@ const lbRes = await fetch(`${API_BASE}/api/leaderboard?userId=${profile.user_id}
 const lb = await lbRes.json();
 if (lbRes.ok) setLeaderboard(lb.leaderboard || []);
 }
+async function sendRepInvite() {
+try {
+if (!inviteEmail.trim()) return alert("Enter rep email.");
+setSendingInvite(true);
 
+const res = await fetch(`${API_BASE}/api/invite/send`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+managerUserId: profile.user_id,
+repName: inviteName,
+repEmail: inviteEmail
+})
+});
 // Invite link (manager)
 async function createInviteLink() {
 if (!profile?.company_id) return;
