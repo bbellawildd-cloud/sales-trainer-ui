@@ -960,11 +960,12 @@ Level {difficulty}
 
 {session ? (
 <>
-<div className="sessionBox">width={72} height={72} className
+<div className="sessionBox">
 <div className="muted">
 Session: <code>{session.id}</code>
 </div>
 
+<div className="personaRow"
 <div className={speaking ? "avatarWrap speaking" : listening ? "avatarWrap listening" : "avatarwrap"}>
   {faceUrl ? (
    <img 
@@ -975,7 +976,8 @@ Session: <code>{session.id}</code>
    className="avatar"
   />
   ) : null}
-
+</div>
+  
 <div>
 <div className="personaText">
   <b>Prospect persona:</b> {session?.persona}
@@ -986,7 +988,8 @@ Session: <code>{session.id}</code>
 </div>
 </div>
 </div>
-
+  </div>
+  
 <div className="chatControls">
 <button
 className={listening ? "voiceBtn active" : "voiceBtn"}
@@ -1015,7 +1018,6 @@ type="button"
 </button>
 </div>
 
-
 <div className="replyBox">
   <div className="replyLabel">{listening ? "You" : "Prospect"}</div>
   <div className="replyText">
@@ -1026,14 +1028,12 @@ type="button"
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
 </div>
-
+    </>
 ) : (
 <div className="muted" style={{ marginTop: 12 }}>
 Start a session to begin training.
 </div>
 )}
-</div>
-</div>
 
 {/* RIGHT */}
 <div className="stack">
