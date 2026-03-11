@@ -967,11 +967,17 @@ Session: <code>{session.id}</code>
 
 <div className={speaking ? "avatarWrap speaking" : listening ? "avatarWrap listening" : "avatarwrap"}>
   {faceUrl ? (
-    <img src={faceUrl} alt="Prospect" className="avatar" />
+   <img 
+   src={faceUrl}
+   alt="Prospect" 
+   width={72}
+   Height={72}
+   className="avatar"
+  />
   ) : null}
 <div>
-<div className="personaTitle">
-<b>Prospect persona:</b> {session.persona}
+<div className="personaText">
+  Prospect persona:</b> {session.persona}
 </div>
 <div className="muted smallText">Randomized each session • consistent during session</div>
 </div>
@@ -1350,11 +1356,10 @@ border: 1px solid rgba(255,255,255,0.10);
 background: rgba(0,0,0,0.18);
 }
 
-.personaRow {
-display: flex;
-align-items: center;
-gap: 12px;
-margin-top: 10px;
+.personaText {
+font-size: 12x;
+opacity: 0.65;
+margin-top: 6px;
 }
 
 .avatar {
