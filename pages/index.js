@@ -965,19 +965,20 @@ Level {difficulty}
 Session: <code>{session.id}</code>
 </div>
 
-<div className="personaRow"
-<div className={speaking ? "avatarWrap speaking" : listening ? "avatarWrap listening" : "avatarwrap"}>
-  {faceUrl ? (
-   <img 
-   src={faceUrl}
-   alt="Prospect" 
-   width={72}
-   Height={72}
-   className="avatar"
-  />
-  ) : null}
+<div className="personaRow">
+  <div className={speaking ? "avatarWrap speaking" : listening ? "avatarWrap listening" : "avatarwrap"}>
+    {faceUrl ? (
+       <img 
+       src={faceUrl}
+       alt="Prospect" 
+       width={72}
+       height={72}
+       className="avatar"
+      />
+    ) : null}
+  </div>
 </div>
-  
+    
 <div>
 <div className="personaText">
   <b>Prospect persona:</b> {session?.persona}
