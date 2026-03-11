@@ -988,8 +988,6 @@ Session: <code>{session.id}</code>
   Randomized each session • consistent during session
 </div>
 </div>
-</div>
-  </div>
   
 <div className="chatControls">
 <button
