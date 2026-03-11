@@ -975,11 +975,14 @@ Session: <code>{session.id}</code>
    className="avatar"
   />
   ) : null}
+
 <div>
 <div className="personaText">
-  Prospect persona:</b> {session.persona}
+  <b>Prospect persona:</b> {session?.persona}
 </div>
-<div className="muted smallText">Randomized each session • consistent during session</div>
+  
+<div className="muted smallText">
+  Randomized each session • consistent during session
 </div>
 </div>
 </div>
