@@ -966,29 +966,38 @@ Session: <code>{session.id}</code>
 </div>
 
 <div className="personaRow">
-  <div className={speaking ? "avatarWrap speaking" : listening ? "avatarWrap listening" : "avatarwrap"}>
-    {faceUrl ? (
-       <img 
-       src={faceUrl}
-       alt="Prospect" 
-       width={72}
-       height={72}
-       className="avatar"
-      />
-    ) : null}
-  </div>
+<div
+className={
+speaking
+? "avatarWrap speaking"
+: listening
+? "avatarWrap listening"
+: "avatarWrap"
+}
+>
+{faceUrl ? (
+<img
+src={faceUrl}
+alt="Prospect"
+width={72}
+height={72}
+className="avatar"
+/>
+) : null}
 </div>
-    
+
 <div>
 <div className="personaText">
-  <b>Prospect persona:</b> {session?.persona}
+<b>Prospect persona:</b> {session?.persona}
 </div>
-  
+
 <div className="muted smallText">
-  Randomized each session • consistent during session
+Randomized each session • consistent during session
 </div>
 </div>
-  
+</div>
+</div>
+
 <div className="chatControls">
 <button
 className={listening ? "voiceBtn active" : "voiceBtn"}
@@ -1018,16 +1027,16 @@ type="button"
 </div>
 
 <div className="replyBox">
-  <div className="replyLabel">{listening ? "You" : "Prospect"}</div>
-  <div className="replyText">
-    {listening ? (message || "Listening...") : (reply || "-")}
-  </div>
-    </div>
+<div className="replyLabel">{listening ? "You" : "Prospect"}</div>
+<div className="replyText">
+{listening ? (message || "Listening...") : (reply || "—")}
+</div>
+</div>
 
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
 </div>
-  
+</>
 ) : (
 <div className="muted" style={{ marginTop: 12 }}>
 Start a session to begin training.
