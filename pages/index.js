@@ -1027,7 +1027,7 @@ type="button"
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
 </div>
-    </>
+  
 ) : (
 <div className="muted" style={{ marginTop: 12 }}>
 Start a session to begin training.
