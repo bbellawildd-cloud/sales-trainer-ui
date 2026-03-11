@@ -126,11 +126,27 @@ function Bar({ label, value }) {
 const v = value == null ? null : Math.max(0, Math.min(100, Number(value)));
 return (
 <div style={{ marginBottom: 10 }}>
-<div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, opacity: 0.9 }}>
+<div
+style={{
+display: "flex",
+justifyContent: "space-between",
+fontSize: 13,
+opacity: 0.9
+}}
+>
 <div>{label}</div>
-<div style={{ fontVariantNumeric: "tabular-nums" }}>{v == null ? "—" : `${v}/100`}</div>
+<div style={{ fontVariantNumeric: "tabular-nums" }}>
+{v == null ? "—" : `${v}/100`}
 </div>
-<div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.10)", overflow: "hidden" }}>
+</div>
+<div
+style={{
+height: 10,
+borderRadius: 999,
+background: "rgba(255,255,255,0.10)",
+overflow: "hidden"
+}}
+>
 <div
 style={{
 height: "100%",
@@ -164,6 +180,7 @@ marginBottom: 8
 </span>
 );
 }
+
 function getBadgesFromGrade(raw) {
 const g = raw || {};
 const rubric = g.rubric || g.scores || {};
@@ -195,6 +212,7 @@ function Scorecard({ grade, profile }) {
 const n = normalizeGrade(grade);
 const [showRaw, setShowRaw] = useState(false);
 const badges = getBadgesFromGrade(grade);
+
 return (
 <div className="card">
 <div className="headerRow">
@@ -245,7 +263,9 @@ padding: 18
 
 {badges.length ? (
 <div style={{ marginTop: 12 }}>
-<div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>Unlocked badges</div>
+<div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>
+Unlocked badges
+</div>
 <div>
 {badges.map((badge, i) => (
 <Pill key={i}>🏆 {badge}</Pill>
@@ -253,7 +273,6 @@ padding: 18
 </div>
 </div>
 ) : null}
-
 </div>
 
 <div
@@ -278,21 +297,48 @@ padding: 18
 </div>
 
 <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
-<div style={{ flex: "1 1 320px", minWidth: 280, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<div
+style={{
+flex: "1 1 320px",
+minWidth: 280,
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 18
+}}
+>
 <h3 style={{ margin: 0, fontSize: 16 }}>What went well</h3>
 <div style={{ marginTop: 10 }}>
 {n.wins.length ? n.wins.map((w, i) => <Pill key={i}>{String(w)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
 </div>
 </div>
 
-<div style={{ flex: "1 1 320px", minWidth: 280, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<div
+style={{
+flex: "1 1 320px",
+minWidth: 280,
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 18
+}}
+>
 <h3 style={{ margin: 0, fontSize: 16 }}>Needs coaching</h3>
 <div style={{ marginTop: 10 }}>
 {n.fixes.length ? n.fixes.map((f, i) => <Pill key={i}>{String(f)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
 </div>
 </div>
 
-<div style={{ flex: "1 1 320px", minWidth: 280, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<div
+style={{
+flex: "1 1 320px",
+minWidth: 280,
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 18
+}}
+>
 <h3 style={{ margin: 0, fontSize: 16 }}>Where they got stuck</h3>
 <div style={{ marginTop: 10 }}>
 {n.stuckPoints.length ? n.stuckPoints.map((s, i) => <Pill key={i}>{String(s)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
@@ -300,7 +346,15 @@ padding: 18
 </div>
 </div>
 
-<div style={{ marginTop: 16, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 18 }}>
+<div
+style={{
+marginTop: 16,
+background: "rgba(255,255,255,0.05)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 18
+}}
+>
 <h3 style={{ margin: 0, fontSize: 16 }}>Skills rubric</h3>
 <div style={{ marginTop: 10 }}>
 {n.rubricItems?.length ? (
@@ -317,7 +371,9 @@ marginBottom: 10
 >
 <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
 <div style={{ fontWeight: 750 }}>{it.label}</div>
-<div style={{ opacity: 0.9 }}>{it.score == null ? "—" : `${it.score}/100`}</div>
+<div style={{ opacity: 0.9 }}>
+{it.score == null ? "—" : `${it.score}/100`}
+</div>
 </div>
 {it.notes ? (
 <div style={{ marginTop: 6, opacity: 0.85, fontSize: 13, lineHeight: 1.35 }}>
@@ -332,7 +388,13 @@ marginBottom: 10
 </div>
 
 {n.nextBestAction ? (
-<div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.10)" }}>
+<div
+style={{
+marginTop: 12,
+paddingTop: 12,
+borderTop: "1px solid rgba(255,255,255,0.10)"
+}}
+>
 <div style={{ fontSize: 13, opacity: 0.8 }}>Next best action</div>
 <div style={{ marginTop: 6, fontSize: 14 }}>{String(n.nextBestAction)}</div>
 </div>
@@ -340,9 +402,25 @@ marginBottom: 10
 </div>
 
 {showRaw ? (
-<div style={{ marginTop: 14, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 14 }}>
+<div
+style={{
+marginTop: 14,
+background: "rgba(0,0,0,0.25)",
+border: "1px solid rgba(255,255,255,0.10)",
+borderRadius: 14,
+padding: 14
+}}
+>
 <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>Raw grade payload</div>
-<pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, fontSize: 12, lineHeight: 1.35 }}>
+<pre
+style={{
+whiteSpace: "pre-wrap",
+wordBreak: "break-word",
+margin: 0,
+fontSize: 12,
+lineHeight: 1.35
+}}
+>
 {JSON.stringify(n.raw, null, 2)}
 </pre>
 </div>
@@ -355,7 +433,6 @@ marginBottom: 10
 Home Page
 ========================================================= */
 export default function Home() {
-// Auth / profile
 const [authUser, setAuthUser] = useState(null);
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
@@ -368,12 +445,10 @@ const [repName, setRepName] = useState("");
 const [companyName, setCompanyName] = useState("");
 const [profile, setProfile] = useState(null);
 
-// Company settings
 const [company, setCompany] = useState(null);
 const [companyIndustry, setCompanyIndustry] = useState("");
 const [savingCompany, setSavingCompany] = useState(false);
 
-// Session / chat
 const [session, setSession] = useState(null);
 const [faceUrl, setFaceUrl] = useState("");
 const [message, setMessage] = useState("");
@@ -382,19 +457,15 @@ const [reply, setReply] = useState("");
 const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
 
-// Difficulty
 const difficulty = useMemo(() => {
-  if (!profile) return 1;
-
-  if (profile.level <= 2) return 1;
-  if (profile.level <= 4) return 2;
-  if (profile.level <= 6) return 3;
-  if (profile.level <= 8) return 4;
-
-  return 5;
+if (!profile) return 1;
+if (profile.level <= 2) return 1;
+if (profile.level <= 4) return 2;
+if (profile.level <= 6) return 3;
+if (profile.level <= 8) return 4;
+return 5;
 }, [profile?.level]);
-  
-// Voice
+
 const recognitionRef = useRef(null);
 const silenceTimerRef = useRef(null);
 const finalTranscriptRef = useRef("");
@@ -458,7 +529,9 @@ const available = window.speechSynthesis?.getVoices?.() || [];
 setVoices(available);
 
 const preferred =
-available.find((v) => /Siri|Google US English|Jenny|Aria|Guy|Christopher/i.test(v.name)) ||
+available.find((v) =>
+/Siri|Google US English|Jenny|Aria|Guy|Christopher/i.test(v.name)
+) ||
 available.find((v) => /en-US/i.test(v.lang)) ||
 available[0];
 
@@ -532,8 +605,6 @@ utterance.onerror = () => setSpeaking(false);
 window.speechSynthesis.speak(utterance);
 }
 
-
-// Auth listeners
 useEffect(() => {
 supabase.auth.getSession().then(({ data }) => {
 setAuthUser(data.session?.user ?? null);
@@ -587,7 +658,6 @@ useEffect(() => {
 if (profile?.company_id) loadCompany(profile.company_id);
 }, [profile?.company_id]);
 
-// Auth actions
 async function signUp() {
 const { error } = await supabase.auth.signUp({ email, password });
 if (error) return alert(error.message);
@@ -604,7 +674,7 @@ async function forgotPassword() {
 if (!email.trim()) return alert("Type your email first.");
 
 const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-redirectTo: `${window.location.origin}/reset-password`,
+redirectTo: `${window.location.origin}/reset-password`
 });
 
 if (error) return alert(error.message);
@@ -625,7 +695,6 @@ setReply("");
 setMessage("");
 }
 
-// First-time manager setup
 async function createCompanyAndProfile() {
 if (!authUser?.id) return;
 
@@ -654,7 +723,6 @@ if (pErr) return alert(pErr.message);
 await loadProfile(authUser.id);
 }
 
-// Manager: set company industry
 async function saveCompanyIndustry() {
 if (!profile?.company_id) return;
 if (!companyIndustry) return alert("Pick an industry first.");
@@ -676,14 +744,15 @@ setSavingCompany(false);
 }
 }
 
-// Sessions
 const lockedIndustry = useMemo(() => {
 return company?.industry || companyIndustry || "pest";
 }, [company?.industry, companyIndustry]);
 
 async function startSession() {
-  const faceSeed = Math.random().toString(36).substring(7);
+if (!profile) return alert("No profile loaded.");
+if (!lockedIndustry) return alert("Manager must set company industry first.");
 
+const faceSeed = Math.random().toString(36).substring(7);
 const stylePool = [
 "adventurer",
 "adventurer-neutral",
@@ -691,12 +760,8 @@ const stylePool = [
 "micah",
 "lorelei"
 ];
-
 const pickedStyle = stylePool[Math.floor(Math.random() * stylePool.length)];
-
-const faceUrl = `https://api.dicebear.com/8.x/${pickedStyle}/png?seed=${faceSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
-if (!profile) return alert("No profile loaded.");
-if (!lockedIndustry) return alert("Manager must set company industry first.");
+const nextFaceUrl = `https://api.dicebear.com/8.x/${pickedStyle}/png?seed=${faceSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 
 setGrade(null);
 setReply("");
@@ -716,12 +781,9 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Failed to start session");
 
 setSession(data.session);
-setFaceUrl(faceUrl);
+setFaceUrl(nextFaceUrl);
 }
 
-async function sendMessage() {
-if (!session) return alert("Start a session first.");
-if (!message.trim()) return;
 async function sendVoiceMessage(transcript) {
 if (!session) return alert("Start a session first.");
 if (!transcript.trim()) return;
@@ -733,24 +795,6 @@ body: JSON.stringify({
 userId: profile.user_id,
 sessionId: session.id,
 message: transcript.trim()
-})
-});
-
-const data = await res.json();
-if (!res.ok) return alert(data.error || "Chat failed");
-
-setReply(data.reply);
-speak(data.reply);
-setMessage("");
-}
-
-const res = await fetch(`${API_BASE}/api/chat`, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-userId: profile.user_id,
-sessionId: session.id,
-message: message.trim()
 })
 });
 
@@ -816,15 +860,11 @@ setSendingInvite(false);
 }
 }
 
-// XP progress
 const xpPercent = useMemo(() => {
 const xp = profile?.total_xp || 0;
 return Math.min(100, xp % 100);
 }, [profile?.total_xp]);
 
-/* =========================================================
-UI
-========================================================= */
 if (!authUser) {
 return (
 <div className="app">
@@ -835,7 +875,11 @@ return (
 
 <div className="field">
 <label>Email</label>
-<input placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+<input
+placeholder="email"
+value={email}
+onChange={(e) => setEmail(e.target.value)}
+/>
 </div>
 
 <div className="field">
@@ -923,7 +967,6 @@ Sign Out
 </div>
 
 <div className="contentWide">
-{/* LEFT */}
 <div className="card">
 <div className="headerRow">
 <div>
@@ -950,9 +993,7 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 <div className="row wrap">
 <div className="fieldInline">
 <label>Training Level</label>
-<div className="pill">
-Level {difficulty}
-</div>
+<div className="pill">Level {difficulty}</div>
 </div>
 
 <button onClick={startSession}>Start Session</button>
@@ -1042,18 +1083,24 @@ type="button"
 Start a session to begin training.
 </div>
 )}
+</div>
+</div>
 
-{/* RIGHT */}
 <div className="stack">
 {profile?.is_manager === true ? (
 <div className="card">
 <h3>Manager Controls</h3>
-<p className="muted">Set the industry once for the company — reps won’t be able to change it.</p>
+<p className="muted">
+Set the industry once for the company — reps won’t be able to change it.
+</p>
 
 <div className="row wrap">
 <div className="fieldInline">
 <label>Company Industry</label>
-<select value={companyIndustry || ""} onChange={(e) => setCompanyIndustry(e.target.value)}>
+<select
+value={companyIndustry || ""}
+onChange={(e) => setCompanyIndustry(e.target.value)}
+>
 <option value="" disabled>
 Select…
 </option>
@@ -1069,7 +1116,11 @@ Select…
 </div>
 
 <div className="row wrap" style={{ marginTop: 12 }}>
-<button className="secondary" onClick={() => (window.location.href = "/dashboard")} type="button">
+<button
+className="secondary"
+onClick={() => (window.location.href = "/dashboard")}
+type="button"
+>
 Manager Dashboard
 </button>
 </div>
@@ -1367,15 +1418,17 @@ border: 1px solid rgba(255,255,255,0.10);
 background: rgba(0,0,0,0.18);
 }
 
-.personaText {
-font-size: 12x;
-opacity: 0.65;
-margin-top: 6px;
+.personaRow {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-top: 10px;
 }
 
-.avatar {
-border-radius: 12px;
-border: 1px solid rgba(255,255,255,0.14);
+.personaText {
+font-size: 12px;
+opacity: 0.65;
+margin-top: 6px;
 }
 
 .chatControls {
@@ -1384,11 +1437,6 @@ gap: 10px;
 align-items: center;
 flex-wrap: wrap;
 margin-top: 14px;
-}
-
-.chatInput {
-flex: 1;
-min-width: 280px;
 }
 
 .replyBox {
@@ -1410,7 +1458,12 @@ font-size: 15px;
 line-height: 1.45;
 }
 
-.lb { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.lb {
+display: flex;
+flex-direction: column;
+gap: 10px;
+margin-top: 8px;
+}
 
 .lbRow {
 display: flex;
@@ -1486,5 +1539,4 @@ object-fit: cover;
 50% { box-shadow: 0 0 22px rgba(239,68,68,0.45); }
 100% { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
 }
-
 `;
