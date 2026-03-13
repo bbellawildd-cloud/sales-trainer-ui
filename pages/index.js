@@ -683,6 +683,7 @@ alert("Reset email sent ✅ Check inbox/spam.");
 }
 
 async function signOut() {
+setCurrentEmotion("idle");
 await supabase.auth.signOut();
 setAuthUser(null);
 setProfile(null);
@@ -812,6 +813,7 @@ setMessage("");
 }
 
 async function endAndGrade() {
+setCurrentEmotion("idle");
 if (!session) return;
 
 const res = await fetch(`${API_BASE}/api/evaluate`, {
@@ -1554,5 +1556,74 @@ animation: bob 0.4s infinite;
 50% { transform: translateY(-2px); }
 100% { transform: translateY(0px); }
 }
+
+.avatarContainer {
+width: 140px;
+height: 140px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: transform 0.2s ease;
+}
+
+.avatar {
+width: 120px;
+border-radius: 16px;
+display: block;
+}
+
+.avatarContainer.isSpeaking .avatar {
+animation: bobTalk 0.42s infinite ease-in-out;
+}
+
+.avatarContainer.emotion-happy {
+transform: translateY(-2px) scale(1.02);
+}
+
+.avatarContainer.emotion-thinking {
+transform: rotate(-4deg);
+}
+
+.avatarContainer.emotion-confused {
+transform: rotate(3deg);
+}
+
+.avatarContainer.emotion-skeptical {
+transform: rotate(-2deg) translateX(-1px);
+}
+
+.avatarContainer.emotion-annoyed {
+animation: annoyedShake 0.28s infinite linear;
+}
+
+.avatarContainer.emotion-surprised {
+animation: surprisedPop 0.6s ease-in-out infinite;
+}
+
+.avatarContainer.emotion-not_interested {
+opacity: 0.88;
+transform: translateY(2px) scale(0.98);
+}
+
+@keyframes bobTalk {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-3px); }
+100% { transform: translateY(0px); }
+}
+
+@keyframes annoyedShake {
+0% { transform: translateX(0px) rotate(0deg); }
+25% { transform: translateX(-2px) rotate(-1deg); }
+50% { transform: translateX(2px) rotate(1deg); }
+75% { transform: translateX(-2px) rotate(-1deg); }
+100% { transform: translateX(0px) rotate(0deg); }
+}
+
+@keyframes surprisedPop {
+0% { transform: scale(1); }
+50% { transform: scale(1.04); }
+100% { transform: scale(1); }
+}
+
 
 `;
