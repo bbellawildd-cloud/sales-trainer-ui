@@ -1,35 +1,37 @@
 import { useEffect, useState } from "react";
 
-export default function ProspectAvatar({ speaking, emotion }) {
-
-const [frame, setFrame] = useState("idle");
+export default function ProspectAvatar({ speaking }) {
 
 const talkFrames = ["talk1","talk2","talk3","talk2"];
+const [frame, setFrame] = useState("idle");
 
+
+// blink animation
 useEffect(() => {
 
-const blinkInterval = setInterval(() => {
+const blink = setInterval(() => {
 
 setFrame("blink");
 
 setTimeout(() => {
 setFrame("idle");
-},120);
+},150);
 
 },4000);
 
-return () => clearInterval(blinkInterval);
+return () => clearInterval(blink);
 
-}, []);
+},[]);
 
 
+// talking animation
 useEffect(() => {
 
 if(!speaking) return;
 
 let i = 0;
 
-const talkInterval = setInterval(() => {
+const talk = setInterval(() => {
 
 setFrame(talkFrames[i % talkFrames.length]);
 
@@ -37,30 +39,21 @@ i++;
 
 },120);
 
-return () => clearInterval(talkInterval);
+return () => clearInterval(talk);
 
 },[speaking]);
 
 
-useEffect(() => {
-
-if(!speaking && emotion){
-
-setFrame(emotion);
-
-}
-
-},[emotion, speaking]);
-
-
 return (
 
-<div className="avatarContainer">
+<div style={{width:140,height:140}}>
 
 <img
 src={`/prospect/${frame}.png`}
-className={`avatar ${speaking ? "talking" : ""}`}
-alt="prospect"
+style={{
+width:120,
+borderRadius:16
+}}
 />
 
 </div>
