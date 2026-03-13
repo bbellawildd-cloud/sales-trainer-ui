@@ -54,10 +54,10 @@ return () => clearInterval(talk);
 }, [speaking, safeEmotion]);
 
 return (
-<div className="avatarContainer">
+<div className={`avatarContainer emotion-${safeEmotion} ${speaking ? "isSpeaking" : ""}`}>
 <img
 src={`/prospect/${frame}.png`}
-className={`avatar ${speaking ? "talking" : ""}`}
+className="avatar"
 alt="prospect"
 />
 </div>
