@@ -475,7 +475,7 @@ const [listening, setListening] = useState(false);
 const [speaking, setSpeaking] = useState(false);
 const [voices, setVoices] = useState([]);
 const [selectedVoiceName, setSelectedVoiceName] = useState("");
-
+const [currentEmotion, setCurrentEmotion] = useState("idle");
 useEffect(() => {
 if (typeof window === "undefined") return;
 
@@ -750,6 +750,9 @@ return company?.industry || companyIndustry || "pest";
 }, [company?.industry, companyIndustry]);
 
 async function startSession() {
+
+setCurrentEmotion("idle");
+  
 if (!profile) return alert("No profile loaded.");
 if (!lockedIndustry) return alert("Manager must set company industry first.");
 
@@ -803,6 +806,7 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Chat failed");
 
 setReply(data.reply);
+setCurrentEmotion(data.emotion || "idle");
 speak(data.reply);
 setMessage("");
 }
@@ -1017,7 +1021,7 @@ speaking
 : "avatarWrap"
 }
 >
-<ProspectAvatar speaking={speaking} />
+<ProspectAvatar speaking={speaking} emotion={currentEmotion} />
 </div>
 
 <div>
