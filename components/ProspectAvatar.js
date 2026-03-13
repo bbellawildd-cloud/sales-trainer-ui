@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const VALID_EMOTIONS = [
+const EMOTIONS = [
 "idle",
 "skeptical",
 "annoyed",
@@ -12,52 +12,81 @@ const VALID_EMOTIONS = [
 ];
 
 export default function ProspectAvatar({ speaking, emotion = "idle" }) {
+
 const [frame, setFrame] = useState("idle");
-const blinkTimeoutRef = useRef(null);
+const talkFrameIndex = useRef(0);
 
-const safeEmotion = VALID_EMOTIONS.includes(emotion) ? emotion : "idle";
+const safeEmotion = EMOTIONS.includes(emotion) ? emotion : "idle";
 
+// Blink loop
 useEffect(() => {
-const blink = setInterval(() => {
+
+const blinkLoop = setInterval(() => {
+
 if (speaking) return;
 
 setFrame("blink");
 
-if (blinkTimeoutRef.current) clearTimeout(blinkTimeoutRef.current);
-
-blinkTimeoutRef.current = setTimeout(() => {
+setTimeout(() => {
 setFrame(safeEmotion);
 }, 150);
+
 }, 4000);
 
-return () => {
-clearInterval(blink);
-if (blinkTimeoutRef.current) clearTimeout(blinkTimeoutRef.current);
-};
+return () => clearInterval(blinkLoop);
+
 }, [safeEmotion, speaking]);
 
+
+
+// Talking animation
 useEffect(() => {
+
 if (!speaking) {
 setFrame(safeEmotion);
 return;
 }
 
-const talkFrames = ["talk1", "talk2", "talk3", "talk2"];
-let i = 0;
+const talkFrames = [
+`${safeEmotion}-talk1`,
+`${safeEmotion}-talk2`,
+`${safeEmotion}-talk3`
+];
 
-const talk = setInterval(() => {
-setFrame(talkFrames[i % talkFrames.length]);
-i += 1;
-}, 120);
+const fallbackFrames = ["talk1","talk2","talk3"];
 
-return () => clearInterval(talk);
+const interval = setInterval(() => {
+
+talkFrameIndex.current++;
+
+const index = talkFrameIndex.current % 3;
+
+const preferred = talkFrames[index];
+const fallback = fallbackFrames[index];
+
+setFrame(preferred);
+
+// fallback safety
+const img = new Image();
+img.src = `/prospect/${preferred}.png`;
+
+img.onerror = () => {
+setFrame(fallback);
+};
+
+},120);
+
+return () => clearInterval(interval);
+
 }, [speaking, safeEmotion]);
 
+
+
 return (
-<div className={`avatarContainer emotion-${safeEmotion} ${speaking ? "isSpeaking" : ""}`}>
+<div className={`avatarContainer emotion-${safeEmotion}`}>
 <img
 src={`/prospect/${frame}.png`}
-className="avatar"
+className={`avatar ${speaking ? "talking" : ""}`}
 alt="prospect"
 />
 </div>
