@@ -1532,4 +1532,23 @@ object-fit: cover;
 50% { box-shadow: 0 0 22px rgba(239,68,68,0.45); }
 100% { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
 }
+
+.avatarContainer {
+width: 140px;
+height: 140px;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.avatar.talking {
+animation: bob 0.4s infinite;
+}
+
+@keyframes bob {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-2px); }
+100% { transform: translateY(0px); }
+}
+
 `;
