@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import ProspectAvatar from "../components/ProspectAvatar";
 
 /* =========================================================
 Supabase + Config
@@ -1016,15 +1017,7 @@ speaking
 : "avatarWrap"
 }
 >
-{faceUrl ? (
-<img
-src={faceUrl}
-alt="Prospect"
-width={72}
-height={72}
-className="avatar"
-/>
-) : null}
+<ProspectAvatar speaking={speaking} />
 </div>
 
 <div>
