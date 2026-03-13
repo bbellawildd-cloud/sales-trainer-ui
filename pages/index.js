@@ -1625,5 +1625,59 @@ transform: translateY(2px) scale(0.98);
 100% { transform: scale(1); }
 }
 
+.avatarContainer {
+width:140px;
+height:140px;
+display:flex;
+align-items:center;
+justify-content:center;
+transition: transform .2s ease;
+}
+
+.avatar {
+width:120px;
+border-radius:16px;
+}
+
+.avatar.talking {
+animation:bobTalk .4s infinite ease-in-out;
+}
+
+@keyframes bobTalk {
+0% { transform:translateY(0px); }
+50% { transform:translateY(-3px); }
+100% { transform:translateY(0px); }
+}
+
+
+/* Emotion animations */
+
+.emotion-happy {
+transform:scale(1.04);
+}
+
+.emotion-thinking {
+transform:rotate(-4deg);
+}
+
+.emotion-confused {
+transform:rotate(3deg);
+}
+
+.emotion-skeptical {
+transform:translateX(-2px) rotate(-2deg);
+}
+
+.emotion-annoyed {
+animation:annoyedShake .3s infinite;
+}
+
+@keyframes annoyedShake {
+0% { transform:translateX(0); }
+25% { transform:translateX(-2px); }
+50% { transform:translateX(2px); }
+75% { transform:translateX(-2px); }
+100% { transform:translateX(0); }
+}
 
 `;
