@@ -1680,4 +1680,77 @@ animation:annoyedShake .3s infinite;
 100% { transform:translateX(0); }
 }
 
+.avatarRig {
+position: relative;
+width: 140px;
+height: 140px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.layer {
+position: absolute;
+width: 120px;
+height: auto;
+user-select: none;
+pointer-events: none;
+}
+
+.baseLayer { z-index: 1; }
+.eyesLayer { z-index: 2; }
+.browLayer { z-index: 3; }
+.mouthLayer { z-index: 4; }
+
+.avatarRig.isSpeaking {
+animation: speakBob 0.42s infinite ease-in-out;
+}
+
+.avatarRig.emotion-happy {
+transform: translateY(-2px) scale(1.02);
+}
+
+.avatarRig.emotion-skeptical {
+transform: rotate(-2deg) translateX(-1px);
+}
+
+.avatarRig.emotion-annoyed {
+animation: annoyedShake 0.28s infinite linear;
+}
+
+.avatarRig.emotion-confused,
+.avatarRig.emotion-thinking {
+transform: rotate(3deg);
+}
+
+.avatarRig.emotion-surprised {
+animation: surprisedPop 0.6s infinite ease-in-out;
+}
+
+.avatarRig.emotion-not_interested {
+opacity: 0.92;
+transform: translateY(2px);
+}
+
+@keyframes speakBob {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-3px); }
+100% { transform: translateY(0px); }
+}
+
+@keyframes annoyedShake {
+0% { transform: translateX(0px); }
+25% { transform: translateX(-2px); }
+50% { transform: translateX(2px); }
+75% { transform: translateX(-2px); }
+100% { transform: translateX(0px); }
+}
+
+@keyframes surprisedPop {
+0% { transform: scale(1); }
+50% { transform: scale(1.04); }
+100% { transform: scale(1); }
+}
+
 `;
