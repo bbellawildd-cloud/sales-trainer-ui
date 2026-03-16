@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-const EMOTIONS = [
+const VALID_EMOTIONS = [
 "idle",
 "skeptical",
 "annoyed",
@@ -11,83 +11,83 @@ const EMOTIONS = [
 "surprised"
 ];
 
+function getBrowFile(emotion) {
+switch (emotion) {
+case "skeptical":
+return "brows-skeptical.png";
+case "annoyed":
+return "brows-annoyed.png";
+case "happy":
+return "brows-happy.png";
+case "confused":
+case "thinking":
+return "brows-confused.png";
+case "surprised":
+return "brows-surprised.png";
+case "not_interested":
+return "brows-idle.png";
+default:
+return "brows-idle.png";
+}
+}
+
+function getContainerClass(emotion, speaking) {
+return [
+"avatarRig",
+`emotion-${emotion}`,
+speaking ? "isSpeaking" : ""
+].join(" ");
+}
+
 export default function ProspectAvatar({ speaking, emotion = "idle" }) {
+const safeEmotion = VALID_EMOTIONS.includes(emotion) ? emotion : "idle";
 
-const [frame, setFrame] = useState("idle");
-const talkFrameIndex = useRef(0);
+const [eyesClosed, setEyesClosed] = useState(false);
+const [mouthFrame, setMouthFrame] = useState("mouth-idle.png");
 
-const safeEmotion = EMOTIONS.includes(emotion) ? emotion : "idle";
-
-// Blink loop
 useEffect(() => {
-
 const blinkLoop = setInterval(() => {
-
-if (speaking) return;
-
-setFrame("blink");
-
-setTimeout(() => {
-setFrame(safeEmotion);
-}, 150);
-
-}, 4000);
+setEyesClosed(true);
+setTimeout(() => setEyesClosed(false), 130);
+}, 3200);
 
 return () => clearInterval(blinkLoop);
+}, []);
 
-}, [safeEmotion, speaking]);
-
-
-
-// Talking animation
 useEffect(() => {
-
 if (!speaking) {
-setFrame(safeEmotion);
+setMouthFrame("mouth-idle.png");
 return;
 }
 
-const talkFrames = [
-`${safeEmotion}-talk1`,
-`${safeEmotion}-talk2`,
-`${safeEmotion}-talk3`
-];
+const frames = ["mouth-talk1.png", "mouth-talk2.png", "mouth-talk3.png", "mouth-talk2.png"];
+let i = 0;
 
-const fallbackFrames = ["talk1","talk2","talk3"];
+const talkLoop = setInterval(() => {
+setMouthFrame(frames[i % frames.length]);
+i += 1;
+}, 90);
 
-const interval = setInterval(() => {
-
-talkFrameIndex.current++;
-
-const index = talkFrameIndex.current % 3;
-
-const preferred = talkFrames[index];
-const fallback = fallbackFrames[index];
-
-setFrame(preferred);
-
-// fallback safety
-const img = new Image();
-img.src = `/prospect/${preferred}.png`;
-
-img.onerror = () => {
-setFrame(fallback);
-};
-
-},120);
-
-return () => clearInterval(interval);
-
-}, [speaking, safeEmotion]);
-
-
+return () => clearInterval(talkLoop);
+}, [speaking]);
 
 return (
-<div className={`avatarContainer emotion-${safeEmotion}`}>
+<div className={getContainerClass(safeEmotion, speaking)}>
+<img src="/prospect/base.png" className="layer baseLayer" alt="prospect base" />
 <img
-src={`/prospect/${frame}.png`}
-className={`avatar ${speaking ? "talking" : ""}`}
-alt="prospect"
+src={eyesClosed ? "/prospect/eyes-closed.png" : "/prospect/eyes-open.png"}
+className="layer eyesLayer"
+alt="prospect eyes"
+/>
+<img
+src={`/prospect/${getBrowFile(safeEmotion)}`}
+className="layer browLayer"
+alt="prospect brows"
+/>
+<img
+src={`/prospect/${mouthFrame}`}
+className="layer mouthLayer"
+alt="prospect mouth"
 />
 </div>
 );
