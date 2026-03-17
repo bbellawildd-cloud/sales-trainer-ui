@@ -1074,9 +1074,9 @@ speaking
 </div>
 </div>
 
+
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
-</div>
 </div>
 </>
 ) : (
