@@ -1009,9 +1009,6 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 {session ? (
 <>
 <div className="sessionBox">
-<div className="muted">
-Session: <code>{session.id}</code>
-</div>
 
 <div className="personaRow">
 <div
