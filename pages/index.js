@@ -1073,7 +1073,6 @@ speaking
  ? (reply || "Prospect speaking...")
  : (reply || "Start a session to begin training.")}
 </div>
-</div>
 
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
