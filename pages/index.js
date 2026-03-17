@@ -1077,7 +1077,7 @@ Start a session to begin training.
 
 
 </div>
-/div>
+</div>
   
 <div className="stack">
 {profile?.is_manager === true ? (
