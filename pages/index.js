@@ -810,7 +810,7 @@ setSession(data.session);
 setFaceUrl(nextFaceUrl);
 setCurrentEmotion("idle");
 
-setTimeout(() +> {
+setTimeout(() => {
   startListening();
 }, 500);
 }
