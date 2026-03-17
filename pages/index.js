@@ -1843,4 +1843,31 @@ animation: talkBounce 0.4s infinite ease-in-out;
   object-fit: cover;
   }
 
+  .avatarAlive {
+transition: transform 0.6s ease;
+animation: float 3s infinite ease-in-out;
+}
+
+@keyframes float {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-6px); }
+100% { transform: translateY(0px); }
+}
+
+.avatarSpeaking {
+animation: talkBounce 0.4s infinite ease-in-out;
+}
+
+@keyframes talkBounce {
+0% { transform: scale(1); }
+50% { transform: scale(1.05); }
+100% { transform: scale(1); }
+}
+
+.avatarImg {
+border-radius: 50%;
+object-fit: cover;
+}
+
+
 `;
