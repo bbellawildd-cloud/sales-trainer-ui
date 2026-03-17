@@ -1039,18 +1039,8 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 <>
 <div className="sessionBox">
 <div className="personaRow">
-<div
-className={
-speaking
-? "avatarWrap speaking"
-: listening
-? "avatarWrap listening"
-: "avatarWrap"
-}
->
 <div className="avatarCenter">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
-</div>
 </div>
 
 <div>
@@ -1074,9 +1064,9 @@ speaking
 </div>
 </div>
 
-
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
+</div>
 </div>
 </>
 ) : (
@@ -1084,6 +1074,7 @@ speaking
 Start a session to begin training.
 </div>
 )}
+
 
 </div>
 /div>
