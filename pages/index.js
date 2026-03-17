@@ -1818,5 +1818,14 @@ animation: avatarPop 0.55s infinite ease-in-out;
 100% { transform: scale(1); }
 }
 
+.avatarAlive {
+animation: float 2.5s infinite ease-in-out;
+}
+
+@keyframes float {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-4px); }
+100% { transform: translateY(0px); }
+}
 
 `;
