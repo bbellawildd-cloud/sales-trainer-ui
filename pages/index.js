@@ -1020,6 +1020,7 @@ speaking
 : "avatarWrap"
 }
 >
+<div className="avatarCenter">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
 </div>
 
@@ -1028,9 +1029,6 @@ speaking
 <b>Prospect persona:</b> {session?.persona}
 </div>
 
-<div className="muted smallText">
-Randomized each session • consistent during session
-</div>
 </div>
 </div>
 </div>
@@ -1866,5 +1864,17 @@ border-radius: 50%;
 object-fit: cover;
 }
 
+.avatarCenter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  }
+
+  .avatarCenter img {
+  width: 180px;
+  height: auto;
+  }
 
 `;
