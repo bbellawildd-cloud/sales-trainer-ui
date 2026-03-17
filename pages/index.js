@@ -1753,4 +1753,70 @@ transform: translateY(2px);
 100% { transform: scale(1); }
 }
 
+  .avatarSwapWrap {
+width: 140px;
+height: 140px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.avatarSwapImage {
+width: 120px;
+height: auto;
+display: block;
+}
+
+.avatarSwapWrap.isSpeaking {
+animation: avatarBob 0.42s infinite ease-in-out;
+}
+
+.avatarSwapWrap.emotion-happy {
+transform: translateY(-2px) scale(1.02);
+}
+
+.avatarSwapWrap.emotion-skeptical {
+transform: rotate(-2deg) translateX(-1px);
+}
+
+.avatarSwapWrap.emotion-confused,
+.avatarSwapWrap.emotion-thinking {
+transform: rotate(2deg);
+}
+
+.avatarSwapWrap.emotion-annoyed {
+animation: avatarShake 0.28s infinite linear;
+}
+
+.avatarSwapWrap.emotion-not_interested {
+opacity: 0.92;
+transform: translateY(2px);
+}
+
+.avatarSwapWrap.emotion-surprised {
+animation: avatarPop 0.55s infinite ease-in-out;
+}
+
+@keyframes avatarBob {
+0% { transform: translateY(0px); }
+50% { transform: translateY(-3px); }
+100% { transform: translateY(0px); }
+}
+
+@keyframes avatarShake {
+0% { transform: translateX(0px); }
+25% { transform: translateX(-2px); }
+50% { transform: translateX(2px); }
+75% { transform: translateX(-2px); }
+100% { transform: translateX(0px); }
+}
+
+@keyframes avatarPop {
+0% { transform: scale(1); }
+50% { transform: scale(1.04); }
+100% { transform: scale(1); }
+}
+
+
 `;
