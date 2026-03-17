@@ -1828,4 +1828,14 @@ animation: float 2.5s infinite ease-in-out;
 100% { transform: translateY(0px); }
 }
 
+.avatarSpeaking {
+animation: talkBounce 0.4s infinite ease-in-out;
+}
+
+@keyframes talkBounce {
+0% { transform: scale(1); }
+50% { transform: scale(1.03); }
+100% { transform: scale(1); }
+}
+
 `;
