@@ -1838,4 +1838,9 @@ animation: talkBounce 0.4s infinite ease-in-out;
 100% { transform: scale(1); }
 }
 
+.avatarImg {
+  border-radius: 50%;
+  object-fit: cover;
+  }
+
 `;
