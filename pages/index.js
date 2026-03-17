@@ -1038,7 +1038,6 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 {session ? (
 <>
 <div className="sessionBox">
-
 <div className="personaRow">
 <div
 className={
@@ -1052,12 +1051,11 @@ speaking
 <div className="avatarCenter">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
 </div>
+</div>
 
 <div>
 <div className="personaText">
 <b>Prospect persona:</b> {session?.persona}
-</div>
-
 </div>
 </div>
 </div>
@@ -1066,17 +1064,19 @@ speaking
 <div className="replyLabel">
 {listening ? "Listening" : speaking ? "Prospect" : "Conversation"}
 </div>
+
 <div className="replyText">
-{listening 
- ? (message || "Listening...")
- : speaking
- ? (reply || "Prospect speaking...")
- : (reply || "Start a session to begin training.")}
+{listening
+? (message || "Listening...")
+: speaking
+? (reply || "Prospect speaking...")
+: (reply || "Start a session to begin training.")}
 </div>
-  </div>
-  
+</div>
+
 <div className="row" style={{ marginTop: 12 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
+</div>
 </div>
 </>
 ) : (
@@ -1084,9 +1084,10 @@ speaking
 Start a session to begin training.
 </div>
 )}
-</div>
-</div>
 
+</div>
+/div>
+  
 <div className="stack">
 {profile?.is_manager === true ? (
 <div className="card">
