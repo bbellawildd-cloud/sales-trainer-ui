@@ -600,11 +600,31 @@ utterance.pitch = 1;
 utterance.volume = 1;
 
 utterance.onstart = () => setSpeaking(true);
-utterance.onend = () => setSpeaking(false);
-utterance.onerror = () => setSpeaking(false);
+  
+utterance.onend = () => {
+  setSpeaking(false);
+
+const lower = String(text || "").toLowerCase();
+
+const conversationEnded =
+lower.includes("i'm not interested") ||
+lower.includes("okay let's do it") ||
+lower.includes("okay, let's do it");
+
+if (!conversationEnded && session) {
+setTimeout(() => {
+startListening();
+}, 500);
+}
+};
+
+utterance.onerror = () => {
+setSpeaking(false);
+};
 
 window.speechSynthesis.speak(utterance);
 }
+
 
 useEffect(() => {
 supabase.auth.getSession().then(({ data }) => {
@@ -695,6 +715,7 @@ setLeaderboard([]);
 setFaceUrl("");
 setReply("");
 setMessage("");
+setCurrentEmotion("idle");
 }
 
 async function createCompanyAndProfile() {
@@ -787,6 +808,11 @@ if (!res.ok) return alert(data.error || "Failed to start session");
 
 setSession(data.session);
 setFaceUrl(nextFaceUrl);
+setCurrentEmotion("idle");
+
+setTimeout(() +> {
+  startListening();
+}, 500);
 }
 
 async function sendVoiceMessage(transcript) {
@@ -829,6 +855,7 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Evaluate failed");
 
 setGrade(data);
+setCurrentEmotion("idle");
 await loadProfile(profile.user_id);
 
 const lbRes = await fetch(`${API_BASE}/api/leaderboard?userId=${profile.user_id}`);
@@ -905,6 +932,8 @@ onChange={(e) => setPassword(e.target.value)}
 Sign Up
 </button>
 </div>
+
+  
 
 <div style={{ marginTop: 10 }}>
 <button className="secondary" onClick={forgotPassword} type="button">
@@ -1033,38 +1062,16 @@ speaking
 </div>
 </div>
 
-<div className="chatControls">
-<button
-className={listening ? "voiceBtn active" : "voiceBtn"}
-onClick={listening ? stopListeningAndSend : startListening}
-type="button"
->
-{listening ? "🛑 Finish & Send" : "🎤 Tap to Talk"}
-</button>
-
-<button
-className="secondary"
-onClick={stopListeningOnly}
-disabled={!listening}
-type="button"
->
-Stop
-</button>
-
-<button
-className="secondary"
-onClick={() => speak(reply)}
-disabled={!reply}
-type="button"
->
-{speaking ? "Speaking..." : "🔊 Replay"}
-</button>
-</div>
-
 <div className="replyBox">
-<div className="replyLabel">{listening ? "You" : "Prospect"}</div>
+<div className="replyLabel">
+{listening ? "Listening" : speaking ? "Prospect" : "Conversation"}
+</div>
 <div className="replyText">
-{listening ? (message || "Listening...") : (reply || "—")}
+{listening 
+ ? (message || "Listening...")
+ : speaking
+ ? (reply || "Prospect speaking...")
+ : (reply || "Start a session to begin training.")}
 </div>
 </div>
 
@@ -1423,14 +1430,6 @@ margin-top: 10px;
 font-size: 12px;
 opacity: 0.65;
 margin-top: 6px;
-}
-
-.chatControls {
-display: flex;
-gap: 10px;
-align-items: center;
-flex-wrap: wrap;
-margin-top: 14px;
 }
 
 .replyBox {
