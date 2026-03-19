@@ -601,9 +601,28 @@ utterance.pitch = 1;
 utterance.volume = 1;
 
 utterance.onstart = () => setSpeaking(true);
-  
+
 utterance.onend = () => {
-  setSpeaking(false);
+setSpeaking(false);
+
+const lower = String(text || "").toLowerCase();
+
+const conversationEnded =
+lower.includes("i'm not interested") ||
+lower.includes("okay let's do it") ||
+lower.includes("okay, let's do it");
+
+if (!conversationEnded && session) {
+setTimeout(() => {
+startListening();
+}, 500);
+}
+};
+
+utterance.onerror = () => {
+setSpeaking(false);
+};
+
 
 const lower = String(text || "").toLowerCase();
 
