@@ -618,7 +618,7 @@ voices.find((v) => /en-US/i.test(v.lang)) ||
 voices[0];
 
 if (pickedVoice) {
-  utterance.voice = pickedVoice;
+utterance.voice = pickedVoice;
 }
 
 utterance.rate = 1;
@@ -626,7 +626,7 @@ utterance.pitch = 1;
 utterance.volume = 1;
 
 utterance.onstart = () => {
-  setSpeaking(true);
+setSpeaking(true);
 };
 
 utterance.onend = () => {
@@ -645,35 +645,12 @@ startListening();
 }
 };
 
-
 utterance.onerror = () => {
 setSpeaking(false);
 };
 
 window.speechSynthesis.speak(utterance);
 }
-
-const lower = String(text || "").toLowerCase();
-
-const conversationEnded =
-lower.includes("i'm not interested") ||
-lower.includes("okay let's do it") ||
-lower.includes("okay, let's do it");
-
-if (!conversationEnded && session) {
-setTimeout(() => {
-startListening();
-}, 500);
-}
-};
-
-utterance.onerror = () => {
-setSpeaking(false);
-};
-
-window.speechSynthesis.speak(utterance);
-}
-
 
 useEffect(() => {
 supabase.auth.getSession().then(({ data }) => {
