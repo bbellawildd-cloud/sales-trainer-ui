@@ -454,7 +454,9 @@ const [session, setSession] = useState(null);
 const [faceUrl, setFaceUrl] = useState("");
 const [message, setMessage] = useState("");
 const [reply, setReply] = useState("");
-
+const [currentEmotionn, setCurrentEmotion] = useState("idle");
+const [autoLoopActive] = useState(false);
+  
 const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
 
@@ -488,7 +490,6 @@ rec.continuous = true;
 rec.interimResults = true;
 rec.lang = "en-US";
 recognitionRef.current = rec;
-
 rec.onstart = () => {
 finalTranscriptRef.current = "";
 setListening(true);
@@ -1867,5 +1868,20 @@ object-fit: cover;
   width: 180px;
   height: auto;
   }
+
+  .avatarWrap.listening {
+animation: pulse 1.2s infinite;
+}
+
+.avatarWrap.speaking {
+transform: scale(1.05);
+}
+
+@keyframes pulse {
+0% { transform: scale(1); opacity: 1; }
+50% { transform: scale(1.08); opacity: 0.8; }
+100% { transform: scale(1); opacity: 1; }
+}
+
 
 `;
