@@ -553,9 +553,22 @@ if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
 function startListening() {
 const recognition = recognitionRef.current;
-if (!recognition) {
-alert("Speech recognition not supported. Use Chrome on desktop.");
-return;
+
+if (!session) return;
+if (!recognition) return;
+
+// prevent overlap
+if (listening) return;
+if (speaking) return;
+
+setMessage("");
+finalTranscriptRef.current = "";
+
+try {
+recognition.start();
+} catch (err) {
+// prevents crash if already started
+}
 }
 
 setMessage("");
@@ -565,17 +578,27 @@ recognition.start();
 
 function stopListeningAndSend() {
 const recognition = recognitionRef.current;
+
 if (recognition && listening) {
+try {
 recognition.stop();
+} catch (err) {}
 }
 
 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
 const finalText = (finalTranscriptRef.current || message || "").trim();
+
 if (finalText) {
 sendVoiceMessage(finalText);
+} else if (session && !speaking) {
+// restart listening if nothing captured
+setTimeout(() => {
+startListening();
+}, 400);
 }
 }
+
 
 function stopListeningOnly() {
 const recognition = recognitionRef.current;
@@ -862,6 +885,11 @@ async function endAndGrade() {
 setCurrentEmotion("idle");
 if (!session) return;
 
+stopListeningOnly();
+
+if (typeof window !== "undefined") {
+  window.speechSynthesis.cancel();
+}
 const res = await fetch(`${API_BASE}/api/evaluate`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
