@@ -617,19 +617,22 @@ voices.find((v) => v.name === selectedVoiceName) ||
 voices.find((v) => /en-US/i.test(v.lang)) ||
 voices[0];
 
-if (pickedVoice) utterance.voice = pickedVoice;
+if (pickedVoice) {
+  utterance.voice = pickedVoice;
+}
 
 utterance.rate = 1;
 utterance.pitch = 1;
 utterance.volume = 1;
 
-utterance.onstart = () => setSpeaking(true);
+utterance.onstart = () => {
+  setSpeaking(true);
+}
 
 utterance.onend = () => {
 setSpeaking(false);
 
 const lower = String(text || "").toLowerCase();
-
 const conversationEnded =
 lower.includes("i'm not interested") ||
 lower.includes("okay let's do it") ||
@@ -646,6 +649,8 @@ utterance.onerror = () => {
 setSpeaking(false);
 };
 
+window.speechSynthesis.speak(utterance);
+}
 
 const lower = String(text || "").toLowerCase();
 
