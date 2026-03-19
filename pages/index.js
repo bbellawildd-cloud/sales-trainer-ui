@@ -645,6 +645,7 @@ startListening();
 }
 };
 
+
 utterance.onerror = () => {
 setSpeaking(false);
 };
