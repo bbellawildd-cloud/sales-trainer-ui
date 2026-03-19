@@ -627,7 +627,7 @@ utterance.volume = 1;
 
 utterance.onstart = () => {
   setSpeaking(true);
-}
+};
 
 utterance.onend = () => {
 setSpeaking(false);
