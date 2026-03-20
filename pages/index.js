@@ -471,7 +471,8 @@ const [listening, setListening] = useState(false);
 const [speaking, setSpeaking] = useState(false);
 const [voices, setVoices] = useState([]);
 const [selectedVoiceName, setSelectedVoiceName] = useState("");
-
+const [waitingForReply, setWaitingForReply] = useState(false);
+  
 const difficulty = useMemo(() => {
 if (!profile) return 1;
 if (profile.level <= 2) return 1;
@@ -626,10 +627,22 @@ if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 }
 
 function speak(text) {
-if (!text || typeof window === "undefined") return;
+if (!text || typeof window === "undefined") {
+  setWaitingForReply(false);
+  return;
+}
 
-window.speechSynthesis.cancel();
+const = window.speechSynthesis.cancel;
+if (!synth) {
+  setWaitingForReply(false);
+  setTimeout(() => {
+    startListening();
+  }, 700);
+  return;
+}
 
+synth.cancel();
+  
 const utterance = new SpeechSynthesisUtterance(text);
 const pickedVoice =
 voices.find((v) => v.name === selectedVoiceName) ||
@@ -645,6 +658,7 @@ utterance.pitch = 1;
 utterance.volume = 1;
 
 utterance.onstart = () => {
+setWaitingForReply(false);
 setSpeaking(true);
 };
 
@@ -660,15 +674,21 @@ lower.includes("okay, let's do it");
 if (!conversationEnded && sessionRef.current) {
 setTimeout(() => {
 startListening();
-}, 500);
+}, 700);
 }
 };
 
 utterance.onerror = () => {
+setWaitingForReply(false);
 setSpeaking(false);
 };
 
-window.speechSynthesis.speak(utterance);
+if (sessionRef.current) {
+  setTimeout(() => {
+    startListening();
+  }, 700);
+}
+}
 }
 
 useEffect(() => {
@@ -750,6 +770,8 @@ alert("Reset email sent ✅ Check inbox/spam.");
 async function signOut() {
 stopListeningOnly();
 
+setWaitingForReply(false);
+  
 if (typeof window !== "undefined") {
 window.speechSynthesis.cancel();
 }
@@ -859,6 +881,17 @@ setSession(data.session);
 setFaceUrl(nextFaceUrl);
 setCurrentEmotion("idle");
 
+if (typeof window !== "undefined" && window.speechSynthesis) {
+try {
+const unlock = new SpeechSynthesisUtterance(" ");
+unlock.volume = 0;
+window.speechSynthesis.speak(unlock);
+window.speechSynthesis.cancel();
+} catch (err) {
+// ignore
+}
+}
+
 setTimeout(() => {
 startListening();
 }, 500);
@@ -883,17 +916,22 @@ message: transcript.trim()
 });
 
 const data = await res.json();
-if (!res.ok) return alert(data.error || "Chat failed");
-
+if (!res.ok) {
+  return alert(data.error || "Chat failed");
+}
+  
 setReply(data.reply || "");
 setCurrentEmotion(data.emotion || "idle");
 setMessage("");
+  
 speak(data.reply || "");
 }
 
 async function endAndGrade() {
 if (!session) return;
 
+setWaitingForReply(false);
+  
 setCurrentEmotion("idle");
 stopListeningOnly();
 
@@ -1114,9 +1152,10 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 <div className="replyText">
 {listening
 ? (message || "Listening...")
-: speaking
-? (reply || "Prospect speaking...")
-: (reply || "Start a session to begin training.")}
+: waitingForReply
+? "Thinking..."
+: (reply || "Prospect speaking")}
+: (reply || "Ready for your next response.")}
 </div>
 </div>
 
