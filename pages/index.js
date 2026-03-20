@@ -13,7 +13,7 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /* =========================================================
-SCORECARD HELPERS + UI
+Score helpers
 ========================================================= */
 function asScore100(v) {
 if (v == null) return null;
@@ -454,11 +454,18 @@ const [session, setSession] = useState(null);
 const [faceUrl, setFaceUrl] = useState("");
 const [message, setMessage] = useState("");
 const [reply, setReply] = useState("");
-const [currentEmotionn, setCurrentEmotion] = useState("idle");
-const [autoLoopActive] = useState(false);
-  
+const [currentEmotion, setCurrentEmotion] = useState("idle");
 const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
+
+const recognitionRef = useRef(null);
+const silenceTimerRef = useRef(null);
+const finalTranscriptRef = useRef("");
+
+const [listening, setListening] = useState(false);
+const [speaking, setSpeaking] = useState(false);
+const [voices, setVoices] = useState([]);
+const [selectedVoiceName, setSelectedVoiceName] = useState("");
 
 const difficulty = useMemo(() => {
 if (!profile) return 1;
@@ -469,15 +476,6 @@ if (profile.level <= 8) return 4;
 return 5;
 }, [profile?.level]);
 
-const recognitionRef = useRef(null);
-const silenceTimerRef = useRef(null);
-const finalTranscriptRef = useRef("");
-
-const [listening, setListening] = useState(false);
-const [speaking, setSpeaking] = useState(false);
-const [voices, setVoices] = useState([]);
-const [selectedVoiceName, setSelectedVoiceName] = useState("");
-const [currentEmotion, setCurrentEmotion] = useState("idle");
 useEffect(() => {
 if (typeof window === "undefined") return;
 
@@ -490,6 +488,7 @@ rec.continuous = true;
 rec.interimResults = true;
 rec.lang = "en-US";
 recognitionRef.current = rec;
+
 rec.onstart = () => {
 finalTranscriptRef.current = "";
 setListening(true);
@@ -556,8 +555,6 @@ const recognition = recognitionRef.current;
 
 if (!session) return;
 if (!recognition) return;
-
-// prevent overlap
 if (listening) return;
 if (speaking) return;
 
@@ -567,13 +564,8 @@ finalTranscriptRef.current = "";
 try {
 recognition.start();
 } catch (err) {
-// prevents crash if already started
+// ignore if already started
 }
-}
-
-setMessage("");
-finalTranscriptRef.current = "";
-recognition.start();
 }
 
 function stopListeningAndSend() {
@@ -582,7 +574,9 @@ const recognition = recognitionRef.current;
 if (recognition && listening) {
 try {
 recognition.stop();
-} catch (err) {}
+} catch (err) {
+// ignore
+}
 }
 
 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -592,17 +586,21 @@ const finalText = (finalTranscriptRef.current || message || "").trim();
 if (finalText) {
 sendVoiceMessage(finalText);
 } else if (session && !speaking) {
-// restart listening if nothing captured
 setTimeout(() => {
 startListening();
 }, 400);
 }
 }
 
-
 function stopListeningOnly() {
 const recognition = recognitionRef.current;
-if (recognition && listening) recognition.stop();
+if (recognition && listening) {
+try {
+recognition.stop();
+} catch (err) {
+// ignore
+}
+}
 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 }
 
@@ -657,8 +655,8 @@ supabase.auth.getSession().then(({ data }) => {
 setAuthUser(data.session?.user ?? null);
 });
 
-const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-setAuthUser(session?.user ?? null);
+const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+setAuthUser(nextSession?.user ?? null);
 });
 
 return () => sub.subscription.unsubscribe();
@@ -729,7 +727,12 @@ alert("Reset email sent ✅ Check inbox/spam.");
 }
 
 async function signOut() {
-setCurrentEmotion("idle");
+stopListeningOnly();
+
+if (typeof window !== "undefined") {
+window.speechSynthesis.cancel();
+}
+
 await supabase.auth.signOut();
 setAuthUser(null);
 setProfile(null);
@@ -798,9 +801,8 @@ return company?.industry || companyIndustry || "pest";
 }, [company?.industry, companyIndustry]);
 
 async function startSession() {
-
 setCurrentEmotion("idle");
-  
+
 if (!profile) return alert("No profile loaded.");
 if (!lockedIndustry) return alert("Manager must set company industry first.");
 
@@ -837,7 +839,7 @@ setFaceUrl(nextFaceUrl);
 setCurrentEmotion("idle");
 
 setTimeout(() => {
-  startListening();
+startListening();
 }, 500);
 }
 
@@ -858,21 +860,22 @@ message: transcript.trim()
 const data = await res.json();
 if (!res.ok) return alert(data.error || "Chat failed");
 
-setReply(data.reply);
+setReply(data.reply || "");
 setCurrentEmotion(data.emotion || "idle");
-speak(data.reply);
 setMessage("");
+speak(data.reply || "");
 }
 
 async function endAndGrade() {
-setCurrentEmotion("idle");
 if (!session) return;
 
+setCurrentEmotion("idle");
 stopListeningOnly();
 
 if (typeof window !== "undefined") {
-  window.speechSynthesis.cancel();
+window.speechSynthesis.cancel();
 }
+
 const res = await fetch(`${API_BASE}/api/evaluate`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
@@ -963,8 +966,6 @@ onChange={(e) => setPassword(e.target.value)}
 Sign Up
 </button>
 </div>
-
-  
 
 <div style={{ marginTop: 10 }}>
 <button className="secondary" onClick={forgotPassword} type="button">
@@ -1067,7 +1068,6 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 </div>
 
 {session ? (
-<>
 <div className="sessionBox">
 <div className="personaRow">
 <div className="avatarCenter">
@@ -1099,17 +1099,14 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 <button onClick={endAndGrade}>End Session & Grade</button>
 </div>
 </div>
-</>
 ) : (
 <div className="muted" style={{ marginTop: 12 }}>
 Start a session to begin training.
 </div>
 )}
-
-
 </div>
 </div>
-  
+
 <div className="stack">
 {profile?.is_manager === true ? (
 <div className="card">
@@ -1216,7 +1213,8 @@ const globalCss = `
 body {
 margin: 0;
 font-family: Inter, system-ui, sans-serif;
-background: radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,0.25), transparent 60%),
+background:
+radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,0.25), transparent 60%),
 radial-gradient(1000px 600px at 90% 20%, rgba(34,197,94,0.18), transparent 55%),
 linear-gradient(135deg, #0f172a, #111827);
 color: white;
@@ -1308,8 +1306,6 @@ opacity: 0.82;
 font-size: 14px;
 line-height: 1.4;
 }
-
-.smallText { font-size: 12px; }
 
 .headerRow {
 display: flex;
@@ -1451,7 +1447,7 @@ margin-top: 10px;
 
 .personaText {
 font-size: 12px;
-opacity: 0.65;
+opacity: 0.75;
 margin-top: 6px;
 }
 
@@ -1496,422 +1492,17 @@ border: 1px solid rgba(255,255,255,0.10);
 .lbName { font-weight: 800; }
 .lbRight { opacity: 0.9; }
 
-.voiceBtn {
-background: linear-gradient(135deg, #06b6d4, #3b82f6);
-min-width: 170px;
-}
-
-.voiceBtn.active {
-background: linear-gradient(135deg, #ef4444, #f97316);
-animation: pulseGlow 1s infinite;
-}
-
-.avatarWrap {
-width: 76px;
-height: 76px;
-border-radius: 18px;
-display: flex;
-align-items: center;
-justify-content: center;
-background: rgba(255,255,255,0.06);
-border: 1px solid rgba(255,255,255,0.14);
-transition: transform 0.2s ease;
-}
-
-.avatarWrap.speaking {
-animation: bobTalk 0.8s infinite ease-in-out;
-}
-
-.avatarWrap.listening {
-animation: nodListen 1.2s infinite ease-in-out;
-}
-
-.avatar {
-width: 72px;
-height: 72px;
-border-radius: 16px;
-border: 1px solid rgba(255,255,255,0.14);
-object-fit: cover;
-}
-
-@keyframes bobTalk {
-0% { transform: translateY(0px) rotate(0deg) scale(1); }
-25% { transform: translateY(-2px) rotate(-2deg) scale(1.02); }
-50% { transform: translateY(0px) rotate(2deg) scale(1.03); }
-75% { transform: translateY(-1px) rotate(-1deg) scale(1.02); }
-100% { transform: translateY(0px) rotate(0deg) scale(1); }
-}
-
-@keyframes nodListen {
-0% { transform: rotate(0deg); }
-25% { transform: rotate(-3deg); }
-50% { transform: rotate(0deg); }
-75% { transform: rotate(3deg); }
-100% { transform: rotate(0deg); }
-}
-
-@keyframes pulseGlow {
-0% { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
-50% { box-shadow: 0 0 22px rgba(239,68,68,0.45); }
-100% { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
-}
-
-.avatarContainer {
-width: 140px;
-height: 140px;
-display: flex;
-align-items: center;
-justify-content: center;
-}
-
-.avatar.talking {
-animation: bob 0.4s infinite;
-}
-
-@keyframes bob {
-0% { transform: translateY(0px); }
-50% { transform: translateY(-2px); }
-100% { transform: translateY(0px); }
-}
-
-.avatarContainer {
-width: 140px;
-height: 140px;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: transform 0.2s ease;
-}
-
-.avatar {
-width: 120px;
-border-radius: 16px;
-display: block;
-}
-
-.avatarContainer.isSpeaking .avatar {
-animation: bobTalk 0.42s infinite ease-in-out;
-}
-
-.avatarContainer.emotion-happy {
-transform: translateY(-2px) scale(1.02);
-}
-
-.avatarContainer.emotion-thinking {
-transform: rotate(-4deg);
-}
-
-.avatarContainer.emotion-confused {
-transform: rotate(3deg);
-}
-
-.avatarContainer.emotion-skeptical {
-transform: rotate(-2deg) translateX(-1px);
-}
-
-.avatarContainer.emotion-annoyed {
-animation: annoyedShake 0.28s infinite linear;
-}
-
-.avatarContainer.emotion-surprised {
-animation: surprisedPop 0.6s ease-in-out infinite;
-}
-
-.avatarContainer.emotion-not_interested {
-opacity: 0.88;
-transform: translateY(2px) scale(0.98);
-}
-
-@keyframes bobTalk {
-0% { transform: translateY(0px); }
-50% { transform: translateY(-3px); }
-100% { transform: translateY(0px); }
-}
-
-@keyframes annoyedShake {
-0% { transform: translateX(0px) rotate(0deg); }
-25% { transform: translateX(-2px) rotate(-1deg); }
-50% { transform: translateX(2px) rotate(1deg); }
-75% { transform: translateX(-2px) rotate(-1deg); }
-100% { transform: translateX(0px) rotate(0deg); }
-}
-
-@keyframes surprisedPop {
-0% { transform: scale(1); }
-50% { transform: scale(1.04); }
-100% { transform: scale(1); }
-}
-
-.avatarContainer {
-width:140px;
-height:140px;
-display:flex;
-align-items:center;
-justify-content:center;
-transition: transform .2s ease;
-}
-
-.avatar {
-width:120px;
-border-radius:16px;
-}
-
-.avatar.talking {
-animation:bobTalk .4s infinite ease-in-out;
-}
-
-@keyframes bobTalk {
-0% { transform:translateY(0px); }
-50% { transform:translateY(-3px); }
-100% { transform:translateY(0px); }
-}
-
-
-/* Emotion animations */
-
-.emotion-happy {
-transform:scale(1.04);
-}
-
-.emotion-thinking {
-transform:rotate(-4deg);
-}
-
-.emotion-confused {
-transform:rotate(3deg);
-}
-
-.emotion-skeptical {
-transform:translateX(-2px) rotate(-2deg);
-}
-
-.emotion-annoyed {
-animation:annoyedShake .3s infinite;
-}
-
-@keyframes annoyedShake {
-0% { transform:translateX(0); }
-25% { transform:translateX(-2px); }
-50% { transform:translateX(2px); }
-75% { transform:translateX(-2px); }
-100% { transform:translateX(0); }
-}
-
-.avatarRig {
-position: relative;
-width: 140px;
-height: 140px;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: transform 0.18s ease, opacity 0.18s ease;
-}
-
-.layer {
-position: absolute;
-width: 120px;
-height: auto;
-user-select: none;
-pointer-events: none;
-}
-
-.baseLayer { z-index: 1; }
-.eyesLayer { z-index: 2; }
-.browLayer { z-index: 3; }
-.mouthLayer { z-index: 4; }
-
-.avatarRig.isSpeaking {
-animation: speakBob 0.42s infinite ease-in-out;
-}
-
-.avatarRig.emotion-happy {
-transform: translateY(-2px) scale(1.02);
-}
-
-.avatarRig.emotion-skeptical {
-transform: rotate(-2deg) translateX(-1px);
-}
-
-.avatarRig.emotion-annoyed {
-animation: annoyedShake 0.28s infinite linear;
-}
-
-.avatarRig.emotion-confused,
-.avatarRig.emotion-thinking {
-transform: rotate(3deg);
-}
-
-.avatarRig.emotion-surprised {
-animation: surprisedPop 0.6s infinite ease-in-out;
-}
-
-.avatarRig.emotion-not_interested {
-opacity: 0.92;
-transform: translateY(2px);
-}
-
-@keyframes speakBob {
-0% { transform: translateY(0px); }
-50% { transform: translateY(-3px); }
-100% { transform: translateY(0px); }
-}
-
-@keyframes annoyedShake {
-0% { transform: translateX(0px); }
-25% { transform: translateX(-2px); }
-50% { transform: translateX(2px); }
-75% { transform: translateX(-2px); }
-100% { transform: translateX(0px); }
-}
-
-@keyframes surprisedPop {
-0% { transform: scale(1); }
-50% { transform: scale(1.04); }
-100% { transform: scale(1); }
-}
-
-  .avatarSwapWrap {
-width: 140px;
-height: 140px;
-display: flex;
-align-items: center;
-justify-content: center;
-transition: transform 0.18s ease, opacity 0.18s ease;
-}
-
-.avatarSwapImage {
-width: 120px;
-height: auto;
-display: block;
-}
-
-.avatarSwapWrap.isSpeaking {
-animation: avatarBob 0.42s infinite ease-in-out;
-}
-
-.avatarSwapWrap.emotion-happy {
-transform: translateY(-2px) scale(1.02);
-}
-
-.avatarSwapWrap.emotion-skeptical {
-transform: rotate(-2deg) translateX(-1px);
-}
-
-.avatarSwapWrap.emotion-confused,
-.avatarSwapWrap.emotion-thinking {
-transform: rotate(2deg);
-}
-
-.avatarSwapWrap.emotion-annoyed {
-animation: avatarShake 0.28s infinite linear;
-}
-
-.avatarSwapWrap.emotion-not_interested {
-opacity: 0.92;
-transform: translateY(2px);
-}
-
-.avatarSwapWrap.emotion-surprised {
-animation: avatarPop 0.55s infinite ease-in-out;
-}
-
-@keyframes avatarBob {
-0% { transform: translateY(0px); }
-50% { transform: translateY(-3px); }
-100% { transform: translateY(0px); }
-}
-
-@keyframes avatarShake {
-0% { transform: translateX(0px); }
-25% { transform: translateX(-2px); }
-50% { transform: translateX(2px); }
-75% { transform: translateX(-2px); }
-100% { transform: translateX(0px); }
-}
-
-@keyframes avatarPop {
-0% { transform: scale(1); }
-50% { transform: scale(1.04); }
-100% { transform: scale(1); }
-}
-
-.avatarAlive {
-animation: float 2.5s infinite ease-in-out;
-}
-
-@keyframes float {
-0% { transform: translateY(0px); }
-50% { transform: translateY(-4px); }
-100% { transform: translateY(0px); }
-}
-
-.avatarSpeaking {
-animation: talkBounce 0.4s infinite ease-in-out;
-}
-
-@keyframes talkBounce {
-0% { transform: scale(1); }
-50% { transform: scale(1.03); }
-100% { transform: scale(1); }
-}
-
-.avatarImg {
-  border-radius: 50%;
-  object-fit: cover;
-  }
-
-  .avatarAlive {
-transition: transform 0.6s ease;
-animation: float 3s infinite ease-in-out;
-}
-
-@keyframes float {
-0% { transform: translateY(0px); }
-50% { transform: translateY(-6px); }
-100% { transform: translateY(0px); }
-}
-
-.avatarSpeaking {
-animation: talkBounce 0.4s infinite ease-in-out;
-}
-
-@keyframes talkBounce {
-0% { transform: scale(1); }
-50% { transform: scale(1.05); }
-100% { transform: scale(1); }
-}
-
-.avatarImg {
-border-radius: 50%;
-object-fit: cover;
-}
-
 .avatarCenter {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 40px;
-  margin-bottom: 20px;
-  }
-
-  .avatarCenter img {
-  width: 180px;
-  height: auto;
-  }
-
-  .avatarWrap.listening {
-animation: pulse 1.2s infinite;
+display: flex;
+justify-content: center;
+align-items: center;
+margin-top: 16px;
+margin-bottom: 16px;
+min-width: 180px;
 }
 
-.avatarWrap.speaking {
-transform: scale(1.05);
+.avatarCenter img {
+width: 180px;
+height: auto;
 }
-
-@keyframes pulse {
-0% { transform: scale(1); opacity: 1; }
-50% { transform: scale(1.08); opacity: 0.8; }
-100% { transform: scale(1); opacity: 1; }
-}
-
-
 `;
