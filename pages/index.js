@@ -461,7 +461,12 @@ const [leaderboard, setLeaderboard] = useState([]);
 const recognitionRef = useRef(null);
 const silenceTimerRef = useRef(null);
 const finalTranscriptRef = useRef("");
-
+  
+const sessionRef = useRef(null);
+const profileRef = useRef(null);
+const speakingRef = useRef(false);
+const listeningRef = useRef(false);
+  
 const [listening, setListening] = useState(false);
 const [speaking, setSpeaking] = useState(false);
 const [voices, setVoices] = useState([]);
@@ -475,6 +480,22 @@ if (profile.level <= 6) return 3;
 if (profile.level <= 8) return 4;
 return 5;
 }, [profile?.level]);
+
+useEffect(() => {
+  sessionRef.current = session;
+}, [session]);
+
+useEffect(() => {
+  profileRef.current = profile;
+}, [profile]);
+
+useEffect(() => {
+  speakingRef.current = speaking;
+}, [speaking]);
+
+useEffect(() => {
+  listeningRef.current = listening;
+}, [listening]);
 
 useEffect(() => {
 if (typeof window === "undefined") return;
@@ -553,10 +574,10 @@ if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 function startListening() {
 const recognition = recognitionRef.current;
 
-if (!session) return;
+if (!sessionRef.current) return;
 if (!recognition) return;
-if (listening) return;
-if (speaking) return;
+if (listeningRef.current) return;
+if (speakingRef.current) return;
 
 setMessage("");
 finalTranscriptRef.current = "";
@@ -571,7 +592,7 @@ recognition.start();
 function stopListeningAndSend() {
 const recognition = recognitionRef.current;
 
-if (recognition && listening) {
+if (recognition && listeningRef.current) {
 try {
 recognition.stop();
 } catch (err) {
@@ -585,7 +606,7 @@ const finalText = (finalTranscriptRef.current || message || "").trim();
 
 if (finalText) {
 sendVoiceMessage(finalText);
-} else if (session && !speaking) {
+} else if (sessionRef.current && !speakingRef.current) {
 setTimeout(() => {
 startListening();
 }, 400);
@@ -594,7 +615,7 @@ startListening();
 
 function stopListeningOnly() {
 const recognition = recognitionRef.current;
-if (recognition && listening) {
+if (recognition && listeningRef.current) {
 try {
 recognition.stop();
 } catch (err) {
@@ -636,7 +657,7 @@ lower.includes("i'm not interested") ||
 lower.includes("okay let's do it") ||
 lower.includes("okay, let's do it");
 
-if (!conversationEnded && session) {
+if (!conversationEnded && sessionRef.current) {
 setTimeout(() => {
 startListening();
 }, 500);
@@ -844,15 +865,19 @@ startListening();
 }
 
 async function sendVoiceMessage(transcript) {
-if (!session) return alert("Start a session first.");
+  const activeSession = sessionRef.current;
+  const activeProfile = profileRef.current;
+  
+if (!activeSession) return;
+if (!activeProfile) return;
 if (!transcript.trim()) return;
 
 const res = await fetch(`${API_BASE}/api/chat`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
-userId: profile.user_id,
-sessionId: session.id,
+userId: activeProfile.user_id,
+sessionId: activeSession.id,
 message: transcript.trim()
 })
 });
