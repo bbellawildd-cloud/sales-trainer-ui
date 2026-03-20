@@ -632,12 +632,13 @@ if (!text || typeof window === "undefined") {
   return;
 }
 
-const = window.speechSynthesis.cancel;
+const synth = window.speechSynthesis;
+  
 if (!synth) {
   setWaitingForReply(false);
   setTimeout(() => {
     startListening();
-  }, 700);
+  }, 400);
   return;
 }
 
