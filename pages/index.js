@@ -1,10 +1,10 @@
+
+Bella Wild <bbellawildd@gmail.com>	Mon, Mar 23, 2026 at 5:07 PM
+To: Bella Wild <bbellawildd@gmail.com>
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ProspectAvatar from "../components/ProspectAvatar";
 
-/* =========================================================
-Supabase + Config
-========================================================= */
 const supabase = createClient(
 process.env.NEXT_PUBLIC_SUPABASE_URL,
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -12,9 +12,6 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-/* =========================================================
-Score helpers
-========================================================= */
 function asScore100(v) {
 if (v == null) return null;
 const x = Number(v);
@@ -123,6 +120,51 @@ raw: g
 };
 }
 
+function Pill({ children, tone = "default" }) {
+const map = {
+default: {
+bg: "rgba(255,255,255,0.08)",
+border: "rgba(255,255,255,0.12)"
+},
+blue: {
+bg: "rgba(59,130,246,0.16)",
+border: "rgba(59,130,246,0.28)"
+},
+green: {
+bg: "rgba(34,197,94,0.14)",
+border: "rgba(34,197,94,0.28)"
+},
+amber: {
+bg: "rgba(245,158,11,0.14)",
+border: "rgba(245,158,11,0.28)"
+},
+red: {
+bg: "rgba(239,68,68,0.14)",
+border: "rgba(239,68,68,0.28)"
+}
+};
+
+const style = map[tone] || map.default;
+
+return (
+<span
+style={{
+display: "inline-flex",
+alignItems: "center",
+padding: "6px 10px",
+borderRadius: 999,
+background: style.bg,
+border: `1px solid ${style.border}`,
+fontSize: 12,
+marginRight: 8,
+marginBottom: 8
+}}
+>
+{children}
+</span>
+);
+}
+
 function Bar({ label, value }) {
 const v = value == null ? null : Math.max(0, Math.min(100, Number(value)));
 return (
@@ -152,7 +194,7 @@ overflow: "hidden"
 style={{
 height: "100%",
 width: v == null ? "0%" : `${v}%`,
-background: "linear-gradient(135deg, rgba(59,130,246,1), rgba(37,99,235,1))",
+background: "linear-gradient(90deg, #22c55e, #3b82f6)",
 borderRadius: 999,
 transition: "width 250ms ease"
 }}
@@ -162,30 +204,9 @@ transition: "width 250ms ease"
 );
 }
 
-function Pill({ children }) {
-return (
-<span
-style={{
-display: "inline-flex",
-alignItems: "center",
-padding: "6px 10px",
-borderRadius: 999,
-background: "rgba(255,255,255,0.08)",
-border: "1px solid rgba(255,255,255,0.12)",
-fontSize: 12,
-marginRight: 8,
-marginBottom: 8
-}}
->
-{children}
-</span>
-);
-}
-
 function getBadgesFromGrade(raw) {
 const g = raw || {};
 const rubric = g.rubric || g.scores || {};
-
 const badges = [];
 
 const opener = Number(rubric.opener ?? 0);
@@ -218,8 +239,8 @@ return (
 <div className="card">
 <div className="headerRow">
 <div>
-<h3>Scorecard</h3>
-<p className="muted">After you grade, the results show up here.</p>
+<h3>Session Scorecard</h3>
+<p className="muted">Detailed coaching after every completed run.</p>
 </div>
 <button
 className="secondary small"
@@ -230,64 +251,29 @@ onClick={() => setShowRaw((s) => !s)}
 </button>
 </div>
 
-<div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 10 }}>
-<div
-style={{
-flex: "1 1 260px",
-minWidth: 260,
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 18
-}}
->
-<div style={{ fontSize: 13, opacity: 0.85 }}>Overall</div>
-<div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 10 }}>
-<div style={{ fontSize: 44, fontWeight: 800, letterSpacing: -1 }}>
-{n.overall == null ? "—" : n.overall}
-</div>
-<div style={{ opacity: 0.8 }}>/100</div>
-</div>
-
-{n.oneLine ? (
-<div style={{ marginTop: 8, fontSize: 13, opacity: 0.9, lineHeight: 1.35 }}>
-{n.oneLine}
-</div>
-) : null}
-
+<div className="scoreTop">
+<div className="scoreHero">
+<div className="scoreEyebrow">Overall</div>
+<div className="scoreBig">{n.overall == null ? "—" : n.overall}</div>
+<div className="scoreSub">/100</div>
+{n.oneLine ? <div className="scoreSummary">{n.oneLine}</div> : null}
 <div style={{ marginTop: 12 }}>
-<Pill>{profile?.is_manager ? "Manager view" : "Rep view"}</Pill>
-{n.stageReached && <Pill>Stage: {String(n.stageReached)}</Pill>}
-{n.delivery?.wpm != null && <Pill>Speed: {n.delivery.wpm} wpm</Pill>}
-{n.delivery?.talkRatio != null && <Pill>Talk ratio: {n.delivery.talkRatio}</Pill>}
+<Pill tone="blue">{profile?.is_manager ? "Manager view" : "Rep view"}</Pill>
+{n.stageReached ? <Pill tone="amber">Stage: {String(n.stageReached)}</Pill> : null}
+{n.delivery?.wpm != null ? <Pill>Speed: {n.delivery.wpm} wpm</Pill> : null}
+{n.delivery?.talkRatio != null ? <Pill>Talk ratio: {n.delivery.talkRatio}</Pill> : null}
 </div>
-
 {badges.length ? (
-<div style={{ marginTop: 12 }}>
-<div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>
-Unlocked badges
-</div>
-<div>
+<div style={{ marginTop: 10 }}>
 {badges.map((badge, i) => (
-<Pill key={i}>🏆 {badge}</Pill>
+<Pill key={i} tone="green">🏆 {badge}</Pill>
 ))}
 </div>
-</div>
 ) : null}
 </div>
 
-<div
-style={{
-flex: "2 1 420px",
-minWidth: 320,
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 18
-}}
->
-<h3 style={{ margin: 0, fontSize: 16 }}>Delivery & Presence</h3>
-<div style={{ marginTop: 12 }}>
+<div className="scoreBars">
+<h3 style={{ marginBottom: 12 }}>Delivery & Presence</h3>
 <Bar label="Confidence" value={n.delivery.confidence} />
 <Bar label="Tone" value={n.delivery.tone} />
 <Bar label="Pacing / Speed" value={n.delivery.pacing} />
@@ -295,144 +281,97 @@ padding: 18
 <Bar label="Energy" value={n.delivery.energy} />
 </div>
 </div>
-</div>
 
-<div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
-<div
-style={{
-flex: "1 1 320px",
-minWidth: 280,
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 18
-}}
->
-<h3 style={{ margin: 0, fontSize: 16 }}>What went well</h3>
+<div className="scoreGrid">
+<div className="scoreTile">
+<h3>What went well</h3>
 <div style={{ marginTop: 10 }}>
-{n.wins.length ? n.wins.map((w, i) => <Pill key={i}>{String(w)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
+{n.wins.length ? n.wins.map((w, i) => <Pill key={i} tone="green">{String(w)}</Pill>) : <div className="muted">—</div>}
 </div>
 </div>
 
-<div
-style={{
-flex: "1 1 320px",
-minWidth: 280,
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 18
-}}
->
-<h3 style={{ margin: 0, fontSize: 16 }}>Needs coaching</h3>
+<div className="scoreTile">
+<h3>Needs coaching</h3>
 <div style={{ marginTop: 10 }}>
-{n.fixes.length ? n.fixes.map((f, i) => <Pill key={i}>{String(f)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
+{n.fixes.length ? n.fixes.map((f, i) => <Pill key={i} tone="red">{String(f)}</Pill>) : <div className="muted">—</div>}
 </div>
 </div>
 
-<div
-style={{
-flex: "1 1 320px",
-minWidth: 280,
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 18
-}}
->
-<h3 style={{ margin: 0, fontSize: 16 }}>Where they got stuck</h3>
+<div className="scoreTile">
+<h3>Where you got stuck</h3>
 <div style={{ marginTop: 10 }}>
-{n.stuckPoints.length ? n.stuckPoints.map((s, i) => <Pill key={i}>{String(s)}</Pill>) : <div style={{ opacity: 0.7 }}>—</div>}
+{n.stuckPoints.length ? n.stuckPoints.map((s, i) => <Pill key={i} tone="amber">{String(s)}</Pill>) : <div className="muted">—</div>}
 </div>
 </div>
 </div>
 
-<div
-style={{
-marginTop: 16,
-background: "rgba(255,255,255,0.05)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 18
-}}
->
-<h3 style={{ margin: 0, fontSize: 16 }}>Skills rubric</h3>
+<div className="scoreTile" style={{ marginTop: 16 }}>
+<h3>Skills rubric</h3>
 <div style={{ marginTop: 10 }}>
 {n.rubricItems?.length ? (
 n.rubricItems.map((it, idx) => (
-<div
-key={idx}
-style={{
-padding: "10px 12px",
-borderRadius: 12,
-background: "rgba(255,255,255,0.04)",
-border: "1px solid rgba(255,255,255,0.08)",
-marginBottom: 10
-}}
->
-<div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+<div key={idx} className="rubricRow">
+<div className="rubricTop">
 <div style={{ fontWeight: 750 }}>{it.label}</div>
-<div style={{ opacity: 0.9 }}>
-{it.score == null ? "—" : `${it.score}/100`}
+<div>{it.score == null ? "—" : `${it.score}/100`}</div>
 </div>
-</div>
-{it.notes ? (
-<div style={{ marginTop: 6, opacity: 0.85, fontSize: 13, lineHeight: 1.35 }}>
-{it.notes}
-</div>
-) : null}
+{it.notes ? <div className="rubricNotes">{it.notes}</div> : null}
 </div>
 ))
 ) : (
-<div style={{ opacity: 0.7 }}>No rubric categories yet (backend can add later).</div>
+<div className="muted">No rubric categories yet.</div>
 )}
 </div>
 
 {n.nextBestAction ? (
-<div
-style={{
-marginTop: 12,
-paddingTop: 12,
-borderTop: "1px solid rgba(255,255,255,0.10)"
-}}
->
-<div style={{ fontSize: 13, opacity: 0.8 }}>Next best action</div>
-<div style={{ marginTop: 6, fontSize: 14 }}>{String(n.nextBestAction)}</div>
+<div className="nextBestAction">
+<div className="muted" style={{ fontSize: 13 }}>Next best action</div>
+<div style={{ marginTop: 6 }}>{String(n.nextBestAction)}</div>
 </div>
 ) : null}
 </div>
 
 {showRaw ? (
-<div
-style={{
-marginTop: 14,
-background: "rgba(0,0,0,0.25)",
-border: "1px solid rgba(255,255,255,0.10)",
-borderRadius: 14,
-padding: 14
-}}
->
-<div style={{ fontSize: 13, opacity: 0.8, marginBottom: 8 }}>Raw grade payload</div>
-<pre
-style={{
-whiteSpace: "pre-wrap",
-wordBreak: "break-word",
-margin: 0,
-fontSize: 12,
-lineHeight: 1.35
-}}
->
-{JSON.stringify(n.raw, null, 2)}
-</pre>
+<div className="rawBox">
+<div className="muted" style={{ marginBottom: 8 }}>Raw grade payload</div>
+<pre className="rawPre">{JSON.stringify(n.raw, null, 2)}</pre>
 </div>
 ) : null}
 </div>
 );
 }
 
-/* =========================================================
-Home Page
-========================================================= */
+function buildLiveCoachHints(text) {
+const t = String(text || "").toLowerCase().trim();
+if (!t) return [];
+
+const hints = [];
+const words = t.split(/\s+/).filter(Boolean);
+const questionCount = (t.match(/\?/g) || []).length;
+const fillerCount = (t.match(/\b(um|uh|like|you know|basically|actually)\b/g) || []).length;
+const weakWords = (t.match(/\b(maybe|kind of|sort of|hopefully|i think|probably)\b/g) || []).length;
+
+if (fillerCount >= 2) hints.push({ label: "Too many filler words", tone: "red" });
+if (weakWords >= 2) hints.push({ label: "Sound more confident", tone: "amber" });
+if (questionCount === 0 && words.length > 12) hints.push({ label: "Ask a question", tone: "blue" });
+if (!/\b(pain|problem|issue|challenge|currently|today|process)\b/.test(t)) {
+hints.push({ label: "Discover pain deeper", tone: "amber" });
+}
+if (words.length > 35) hints.push({ label: "Too much talking", tone: "red" });
+if (!/\b(why|how|what|walk me through|tell me about)\b/.test(t)) {
+hints.push({ label: "Use discovery language", tone: "blue" });
+}
+
+return hints.slice(0, 4);
+}
+
+function computeSessionMood({ listening, speaking, waitingForReply, currentEmotion }) {
+if (waitingForReply) return "thinking";
+if (listening) return "listening";
+if (speaking) return "speaking";
+return currentEmotion || "idle";
+}
+
 export default function Home() {
 const [authUser, setAuthUser] = useState(null);
 const [email, setEmail] = useState("");
@@ -451,28 +390,29 @@ const [companyIndustry, setCompanyIndustry] = useState("");
 const [savingCompany, setSavingCompany] = useState(false);
 
 const [session, setSession] = useState(null);
-const [faceUrl, setFaceUrl] = useState("");
 const [message, setMessage] = useState("");
 const [reply, setReply] = useState("");
 const [currentEmotion, setCurrentEmotion] = useState("idle");
 const [grade, setGrade] = useState(null);
 const [leaderboard, setLeaderboard] = useState([]);
-
-const recognitionRef = useRef(null);
-const silenceTimerRef = useRef(null);
-const finalTranscriptRef = useRef("");
-  
-const sessionRef = useRef(null);
-const profileRef = useRef(null);
-const speakingRef = useRef(false);
-const listeningRef = useRef(false);
-  
 const [listening, setListening] = useState(false);
 const [speaking, setSpeaking] = useState(false);
 const [voices, setVoices] = useState([]);
 const [selectedVoiceName, setSelectedVoiceName] = useState("");
 const [waitingForReply, setWaitingForReply] = useState(false);
-  
+const [liveCoachVisible, setLiveCoachVisible] = useState(true);
+const [sessionStreak, setSessionStreak] = useState(0);
+const [sessionXp, setSessionXp] = useState(0);
+
+const recognitionRef = useRef(null);
+const silenceTimerRef = useRef(null);
+const finalTranscriptRef = useRef("");
+
+const sessionRef = useRef(null);
+const profileRef = useRef(null);
+const speakingRef = useRef(false);
+const listeningRef = useRef(false);
+
 const difficulty = useMemo(() => {
 if (!profile) return 1;
 if (profile.level <= 2) return 1;
@@ -482,20 +422,36 @@ if (profile.level <= 8) return 4;
 return 5;
 }, [profile?.level]);
 
+const lockedIndustry = useMemo(() => {
+return company?.industry || companyIndustry || "pest";
+}, [company?.industry, companyIndustry]);
+
+const liveCoachHints = useMemo(() => buildLiveCoachHints(message), [message]);
+
+const sessionMood = useMemo(
+() => computeSessionMood({ listening, speaking, waitingForReply, currentEmotion }),
+[listening, speaking, waitingForReply, currentEmotion]
+);
+
+const xpPercent = useMemo(() => {
+const xp = profile?.total_xp || 0;
+return Math.min(100, xp % 100);
+}, [profile?.total_xp]);
+
 useEffect(() => {
-  sessionRef.current = session;
+sessionRef.current = session;
 }, [session]);
 
 useEffect(() => {
-  profileRef.current = profile;
+profileRef.current = profile;
 }, [profile]);
 
 useEffect(() => {
-  speakingRef.current = speaking;
+speakingRef.current = speaking;
 }, [speaking]);
 
 useEffect(() => {
-  listeningRef.current = listening;
+listeningRef.current = listening;
 }, [listening]);
 
 useEffect(() => {
@@ -572,6 +528,26 @@ if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 };
 }, []);
 
+useEffect(() => {
+supabase.auth.getSession().then(({ data }) => {
+setAuthUser(data.session?.user ?? null);
+});
+
+const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+setAuthUser(nextSession?.user ?? null);
+});
+
+return () => sub.subscription.unsubscribe();
+}, []);
+
+useEffect(() => {
+if (authUser?.id) loadProfile(authUser.id);
+}, [authUser]);
+
+useEffect(() => {
+if (profile?.company_id) loadCompany(profile.company_id);
+}, [profile?.company_id]);
+
 function startListening() {
 const recognition = recognitionRef.current;
 
@@ -628,22 +604,22 @@ if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
 function speak(text) {
 if (!text || typeof window === "undefined") {
-  setWaitingForReply(false);
-  return;
+setWaitingForReply(false);
+return;
 }
 
 const synth = window.speechSynthesis;
-  
+
 if (!synth) {
-  setWaitingForReply(false);
-  setTimeout(() => {
-    startListening();
-  }, 400);
-  return;
+setWaitingForReply(false);
+setTimeout(() => {
+startListening();
+}, 700);
+return;
 }
 
 synth.cancel();
-  
+
 const utterance = new SpeechSynthesisUtterance(text);
 const pickedVoice =
 voices.find((v) => v.name === selectedVoiceName) ||
@@ -654,6 +630,7 @@ if (pickedVoice) {
 utterance.voice = pickedVoice;
 }
 
+utterance.lang = "en-US";
 utterance.rate = 1;
 utterance.pitch = 1;
 utterance.volume = 1;
@@ -682,27 +659,27 @@ startListening();
 utterance.onerror = () => {
 setWaitingForReply(false);
 setSpeaking(false);
-};
 
 if (sessionRef.current) {
-  setTimeout(() => {
-    startListening();
-  }, 700);
+setTimeout(() => {
+startListening();
+}, 700);
+}
+};
+
+try {
+synth.speak(utterance);
+} catch (err) {
+setWaitingForReply(false);
+setSpeaking(false);
+
+if (sessionRef.current) {
+setTimeout(() => {
+startListening();
+}, 700);
 }
 }
 }
-
-useEffect(() => {
-supabase.auth.getSession().then(({ data }) => {
-setAuthUser(data.session?.user ?? null);
-});
-
-const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-setAuthUser(nextSession?.user ?? null);
-});
-
-return () => sub.subscription.unsubscribe();
-}, []);
 
 async function loadProfile(userId) {
 const { data, error } = await supabase
@@ -737,14 +714,6 @@ setCompany(data);
 setCompanyIndustry(data.industry || "");
 }
 
-useEffect(() => {
-if (authUser?.id) loadProfile(authUser.id);
-}, [authUser]);
-
-useEffect(() => {
-if (profile?.company_id) loadCompany(profile.company_id);
-}, [profile?.company_id]);
-
 async function signUp() {
 const { error } = await supabase.auth.signUp({ email, password });
 if (error) return alert(error.message);
@@ -770,9 +739,8 @@ alert("Reset email sent ✅ Check inbox/spam.");
 
 async function signOut() {
 stopListeningOnly();
-
 setWaitingForReply(false);
-  
+
 if (typeof window !== "undefined") {
 window.speechSynthesis.cancel();
 }
@@ -785,10 +753,11 @@ setCompanyIndustry("");
 setSession(null);
 setGrade(null);
 setLeaderboard([]);
-setFaceUrl("");
 setReply("");
 setMessage("");
 setCurrentEmotion("idle");
+setSessionXp(0);
+setSessionStreak(0);
 }
 
 async function createCompanyAndProfile() {
@@ -840,30 +809,17 @@ setSavingCompany(false);
 }
 }
 
-const lockedIndustry = useMemo(() => {
-return company?.industry || companyIndustry || "pest";
-}, [company?.industry, companyIndustry]);
-
 async function startSession() {
 setCurrentEmotion("idle");
 
 if (!profile) return alert("No profile loaded.");
 if (!lockedIndustry) return alert("Manager must set company industry first.");
 
-const faceSeed = Math.random().toString(36).substring(7);
-const stylePool = [
-"adventurer",
-"adventurer-neutral",
-"fun-emoji",
-"micah",
-"lorelei"
-];
-const pickedStyle = stylePool[Math.floor(Math.random() * stylePool.length)];
-const nextFaceUrl = `https://api.dicebear.com/8.x/${pickedStyle}/png?seed=${faceSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
-
 setGrade(null);
 setReply("");
-setFaceUrl("");
+setWaitingForReply(false);
+setSessionXp(0);
+setSessionStreak(0);
 
 const res = await fetch(`${API_BASE}/api/session/start`, {
 method: "POST",
@@ -879,7 +835,6 @@ const data = await res.json();
 if (!res.ok) return alert(data.error || "Failed to start session");
 
 setSession(data.session);
-setFaceUrl(nextFaceUrl);
 setCurrentEmotion("idle");
 
 if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -899,12 +854,16 @@ startListening();
 }
 
 async function sendVoiceMessage(transcript) {
-  const activeSession = sessionRef.current;
-  const activeProfile = profileRef.current;
-  
+const activeSession = sessionRef.current;
+const activeProfile = profileRef.current;
+
 if (!activeSession) return;
 if (!activeProfile) return;
 if (!transcript.trim()) return;
+
+setWaitingForReply(true);
+setReply("");
+setCurrentEmotion("thinking");
 
 const res = await fetch(`${API_BASE}/api/chat`, {
 method: "POST",
@@ -918,13 +877,18 @@ message: transcript.trim()
 
 const data = await res.json();
 if (!res.ok) {
-  return alert(data.error || "Chat failed");
+setWaitingForReply(false);
+return alert(data.error || "Chat failed");
 }
-  
+
 setReply(data.reply || "");
 setCurrentEmotion(data.emotion || "idle");
 setMessage("");
-  
+
+const bonusXp = Math.min(12, Math.max(3, Math.round(transcript.trim().split(/\s+/).length / 5)));
+setSessionXp((x) => x + bonusXp);
+setSessionStreak((s) => s + 1);
+
 speak(data.reply || "");
 }
 
@@ -932,7 +896,6 @@ async function endAndGrade() {
 if (!session) return;
 
 setWaitingForReply(false);
-  
 setCurrentEmotion("idle");
 stopListeningOnly();
 
@@ -954,6 +917,7 @@ if (!res.ok) return alert(data.error || "Evaluate failed");
 
 setGrade(data);
 setCurrentEmotion("idle");
+setSession(null);
 await loadProfile(profile.user_id);
 
 const lbRes = await fetch(`${API_BASE}/api/leaderboard?userId=${profile.user_id}`);
@@ -992,18 +956,16 @@ setSendingInvite(false);
 }
 }
 
-const xpPercent = useMemo(() => {
-const xp = profile?.total_xp || 0;
-return Math.min(100, xp % 100);
-}, [profile?.total_xp]);
-
 if (!authUser) {
 return (
 <div className="app">
 <div className="content">
-<div className="card">
+<div className="card authCard">
+<div className="heroBadge">VOICE FIRST AI ROLEPLAY</div>
 <h2>AI Sales Trainer</h2>
-<p className="muted">Sign in to start training.</p>
+<p className="muted">
+Practice live objections, discovery, and closes against an AI prospect.
+</p>
 
 <div className="field">
 <label>Email</label>
@@ -1026,9 +988,7 @@ onChange={(e) => setPassword(e.target.value)}
 
 <div className="row wrap">
 <button onClick={signIn}>Sign In</button>
-<button className="secondary" onClick={signUp}>
-Sign Up
-</button>
+<button className="secondary" onClick={signUp}>Sign Up</button>
 </div>
 
 <div style={{ marginTop: 10 }}>
@@ -1048,9 +1008,9 @@ if (authUser && !profile) {
 return (
 <div className="app">
 <div className="content">
-<div className="card">
+<div className="card authCard">
 <h2>Set up your account</h2>
-<p className="muted">Create your company + manager profile (one-time).</p>
+<p className="muted">Create your company + manager profile.</p>
 
 <div className="field">
 <label>Your name</label>
@@ -1072,9 +1032,7 @@ onChange={(e) => setCompanyName(e.target.value)}
 
 <div className="row wrap">
 <button onClick={createCompanyAndProfile}>Create Company</button>
-<button className="secondary" onClick={signOut}>
-Sign Out
-</button>
+<button className="secondary" onClick={signOut}>Sign Out</button>
 </div>
 </div>
 </div>
@@ -1092,27 +1050,46 @@ return (
 <span className="pill">
 {profile?.rep_name} • Level {profile?.level}
 </span>
-<button className="small" onClick={signOut}>
-Sign Out
-</button>
+<button className="small" onClick={signOut}>Sign Out</button>
 </div>
 </div>
 
 <div className="contentWide">
-<div className="card">
+<div className="mainStack">
+<div className="card heroCard">
 <div className="headerRow">
 <div>
-<h2 className="title">Training</h2>
+<div className="heroBadge">LIVE ROLEPLAY</div>
+<h2 className="title">Training Arena</h2>
 <div className="muted">
-Company: <b>{company?.name || "—"}</b> • Industry: <b>{lockedIndustry}</b>
+Company: <b>{company?.name || "—"}</b> • Industry: <b>{lockedIndustry}</b> • Level <b>{difficulty}</b>
 </div>
+</div>
+</div>
+
+<div className="statsRow">
+<div className="statBox">
+<div className="statLabel">Total XP</div>
+<div className="statValue">{profile?.total_xp || 0}</div>
+</div>
+<div className="statBox">
+<div className="statLabel">Current Streak</div>
+<div className="statValue">{sessionStreak}</div>
+</div>
+<div className="statBox">
+<div className="statLabel">Session XP</div>
+<div className="statValue">+{sessionXp}</div>
+</div>
+<div className="statBox">
+<div className="statLabel">Prospect Mood</div>
+<div className="statValue moodText">{sessionMood}</div>
 </div>
 </div>
 
 <div className="xpWrap">
 <div className="xpTop">
 <div className="xpLabel">
-Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({profile?.total_xp} XP)
+Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b>
 </div>
 <div className="xpHint">Progress to next level</div>
 </div>
@@ -1121,60 +1098,129 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b> ({prof
 </div>
 </div>
 
-<div className="panel">
-<div className="row wrap">
-<div className="fieldInline">
-<label>Training Level</label>
-<div className="pill">Level {difficulty}</div>
+<div className="sessionPanel">
+<div className="sessionHeader">
+<div>
+<div className="sectionTitle">AI Prospect</div>
+<div className="muted">
+Voice-first hands-free roleplay loop
+</div>
 </div>
 
-<button onClick={startSession}>Start Session</button>
+<button onClick={startSession}>
+{session ? "Restart Session" : "Start Session"}
+</button>
 </div>
 
 {session ? (
-<div className="sessionBox">
-<div className="personaRow">
-<div className="avatarCenter">
+<div className="sessionBox premium">
+<div className="avatarStage">
+<div className={`avatarHalo mood-${sessionMood}`} />
+<div className="avatarCenter big">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
 </div>
+</div>
 
+<div className="personaPanel">
+<Pill tone="blue">Prospect persona</Pill>
+<div className="personaMain">{session?.persona || "AI prospect loaded"}</div>
+<div className="personaSub">
+Real-time objections, emotion shifts, and automatic voice loop.
+</div>
+</div>
+
+<div className="coachPanel">
+<div className="coachHeader">
+<div className="sectionTitle">Live Coach</div>
+<button
+className="secondary small"
+type="button"
+onClick={() => setLiveCoachVisible((v) => !v)}
+>
+{liveCoachVisible ? "Hide" : "Show"}
+</button>
+</div>
+
+{liveCoachVisible ? (
 <div>
-<div className="personaText">
-<b>Prospect persona:</b> {session?.persona}
+{liveCoachHints.length ? (
+<div>
+{liveCoachHints.map((hint, idx) => (
+<Pill key={idx} tone={hint.tone}>{hint.label}</Pill>
+))}
 </div>
+) : (
+<div className="muted">You look clean right now. Keep going.</div>
+)}
 </div>
+) : (
+<div className="muted">Live coaching hidden.</div>
+)}
 </div>
 
-<div className="replyBox">
+<div className="replyBox premium">
+<div className="replyHeader">
 <div className="replyLabel">
-{listening ? "Listening" : speaking ? "Prospect" : "Conversation"}
+{listening
+? "Listening"
+: waitingForReply
+? "Thinking"
+: speaking
+? "Prospect"
+: "Conversation"}
 </div>
 
-<div className="replyText">
+<div className={`signal ${listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""}`}>
+<span />
+<span />
+<span />
+</div>
+</div>
+
+<div className="replyText large">
 {listening
 ? (message || "Listening...")
 : waitingForReply
 ? "Thinking..."
-: (reply || "Prospect speaking")}
+: speaking
+? (reply || "Prospect speaking...")
 : (reply || "Ready for your next response.")}
 </div>
 </div>
 
-<div className="row" style={{ marginTop: 12 }}>
+<div className="row wrap" style={{ marginTop: 14 }}>
 <button onClick={endAndGrade}>End Session & Grade</button>
+<Pill tone="green">Hands-free loop active</Pill>
 </div>
 </div>
 ) : (
-<div className="muted" style={{ marginTop: 12 }}>
-Start a session to begin training.
+<div className="emptyArena">
+<div className="emptyTitle">Ready to train</div>
+<div className="muted">
+Start a session to enter the voice loop. The app will listen, think, speak, and listen again automatically.
+</div>
 </div>
 )}
 </div>
 </div>
 
+{grade ? <Scorecard grade={grade} profile={profile} /> : null}
+</div>
+
 <div className="stack">
+<div className="card sideCard">
+<h3>Performance Deck</h3>
+<p className="muted">What matters most during the run.</p>
+<div style={{ marginTop: 10 }}>
+<Pill tone="blue">Ask questions</Pill>
+<Pill tone="amber">Find pain</Pill>
+<Pill tone="green">Sound confident</Pill>
+<Pill tone="red">Avoid rambling</Pill>
+</div>
+</div>
+
 {profile?.is_manager === true ? (
-<div className="card">
+<div className="card sideCard">
 <h3>Manager Controls</h3>
 <p className="muted">
 Set the industry once for the company — reps won’t be able to change it.
@@ -1187,9 +1233,7 @@ Set the industry once for the company — reps won’t be able to change it.
 value={companyIndustry || ""}
 onChange={(e) => setCompanyIndustry(e.target.value)}
 >
-<option value="" disabled>
-Select…
-</option>
+<option value="" disabled>Select…</option>
 <option value="pest">Pest</option>
 <option value="solar">Solar</option>
 <option value="insurance">Insurance</option>
@@ -1239,9 +1283,7 @@ onChange={(e) => setInviteEmail(e.target.value)}
 </div>
 ) : null}
 
-{grade ? <Scorecard grade={grade} profile={profile} /> : null}
-
-<div className="card">
+<div className="card sideCard">
 <h3>Leaderboard</h3>
 <p className="muted">Updated after grading.</p>
 
@@ -1269,9 +1311,6 @@ onChange={(e) => setInviteEmail(e.target.value)}
 );
 }
 
-/* =========================================================
-Global CSS
-========================================================= */
 const globalCss = `
 :root { color-scheme: dark; }
 
@@ -1281,7 +1320,7 @@ font-family: Inter, system-ui, sans-serif;
 background:
 radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,0.25), transparent 60%),
 radial-gradient(1000px 600px at 90% 20%, rgba(34,197,94,0.18), transparent 55%),
-linear-gradient(135deg, #0f172a, #111827);
+linear-gradient(135deg, #08101f, #111827 45%, #0b1220);
 color: white;
 }
 
@@ -1301,9 +1340,9 @@ padding: 18px 28px;
 border-bottom: 1px solid rgba(255,255,255,0.10);
 position: sticky;
 top: 0;
-backdrop-filter: blur(10px);
-background: rgba(15, 23, 42, 0.55);
-z-index: 10;
+backdrop-filter: blur(14px);
+background: rgba(8, 16, 31, 0.58);
+z-index: 50;
 }
 
 .logo {
@@ -1328,32 +1367,64 @@ border: 1px solid rgba(255,255,255,0.12);
 }
 
 .content {
-max-width: 900px;
+max-width: 920px;
 margin: 60px auto;
 padding: 0 24px;
 }
 
 .contentWide {
-max-width: 1200px;
+max-width: 1380px;
 margin: 28px auto;
-padding: 0 18px;
+padding: 0 18px 30px;
 display: grid;
-grid-template-columns: 1.2fr 0.8fr;
+grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.75fr);
 gap: 18px;
 }
 
-@media (max-width: 980px) {
-.contentWide { grid-template-columns: 1fr; }
+.mainStack {
+display: flex;
+flex-direction: column;
+gap: 18px;
+}
+
+@media (max-width: 1020px) {
+.contentWide {
+grid-template-columns: 1fr;
+}
 }
 
 .card {
 width: 100%;
 background: rgba(255,255,255,0.06);
-backdrop-filter: blur(12px);
+backdrop-filter: blur(14px);
 border: 1px solid rgba(255,255,255,0.10);
-border-radius: 16px;
+border-radius: 22px;
 padding: 20px;
-box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+}
+
+.sideCard {
+border-radius: 18px;
+}
+
+.authCard {
+max-width: 620px;
+margin: 0 auto;
+}
+
+.heroCard {
+overflow: hidden;
+position: relative;
+}
+
+.heroCard::before {
+content: "";
+position: absolute;
+inset: 0;
+background:
+radial-gradient(600px 240px at 10% 0%, rgba(59,130,246,0.15), transparent 60%),
+radial-gradient(500px 220px at 90% 10%, rgba(34,197,94,0.12), transparent 55%);
+pointer-events: none;
 }
 
 .stack {
@@ -1362,14 +1433,30 @@ flex-direction: column;
 gap: 18px;
 }
 
-h2 { margin: 0; font-size: 26px; }
+h2 { margin: 0; font-size: 34px; }
 h3 { margin: 0; font-weight: 800; }
 .title { margin-bottom: 6px; }
 
 .muted {
 opacity: 0.82;
 font-size: 14px;
-line-height: 1.4;
+line-height: 1.45;
+}
+
+.heroBadge {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+padding: 7px 11px;
+border-radius: 999px;
+background: rgba(59,130,246,0.14);
+border: 1px solid rgba(59,130,246,0.22);
+color: #cfe3ff;
+font-size: 11px;
+font-weight: 800;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+margin-bottom: 10px;
 }
 
 .headerRow {
@@ -1410,26 +1497,29 @@ background: linear-gradient(135deg, #3b82f6, #2563eb);
 border: none;
 color: white;
 padding: 10px 16px;
-border-radius: 12px;
-font-weight: 700;
+border-radius: 14px;
+font-weight: 800;
 cursor: pointer;
-transition: transform 0.18s ease, opacity 0.18s ease;
+transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+box-shadow: 0 12px 28px rgba(37,99,235,0.28);
 }
 
 button:hover {
 transform: translateY(-1px);
-opacity: 0.96;
+opacity: 0.97;
 }
 
 button:disabled {
 opacity: 0.55;
 cursor: not-allowed;
 transform: none;
+box-shadow: none;
 }
 
 button.secondary {
 background: rgba(255,255,255,0.08);
 border: 1px solid rgba(255,255,255,0.14);
+box-shadow: none;
 }
 
 button.small {
@@ -1452,18 +1542,46 @@ select { min-width: 160px; }
 
 input::placeholder { color: rgba(255,255,255,0.55); }
 
-.panel {
-margin-top: 16px;
+.statsRow {
+display: grid;
+grid-template-columns: repeat(4, minmax(0,1fr));
+gap: 12px;
+margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+.statsRow {
+grid-template-columns: repeat(2, minmax(0,1fr));
+}
+}
+
+.statBox {
 padding: 14px;
-border-radius: 14px;
+border-radius: 16px;
+background: rgba(255,255,255,0.05);
 border: 1px solid rgba(255,255,255,0.10);
-background: rgba(255,255,255,0.04);
+}
+
+.statLabel {
+font-size: 12px;
+opacity: 0.7;
+margin-bottom: 6px;
+}
+
+.statValue {
+font-size: 24px;
+font-weight: 800;
+}
+
+.moodText {
+text-transform: capitalize;
+font-size: 18px;
 }
 
 .xpWrap {
 margin-top: 14px;
 padding: 14px;
-border-radius: 14px;
+border-radius: 18px;
 border: 1px solid rgba(255,255,255,0.10);
 background: rgba(255,255,255,0.04);
 }
@@ -1495,44 +1613,323 @@ width: 0%;
 transition: width 0.35s ease;
 }
 
-.sessionBox {
-margin-top: 14px;
-padding: 14px;
-border-radius: 14px;
+.sessionPanel {
+margin-top: 18px;
+padding: 16px;
+border-radius: 18px;
 border: 1px solid rgba(255,255,255,0.10);
-background: rgba(0,0,0,0.18);
+background: rgba(255,255,255,0.03);
 }
 
-.personaRow {
+.sessionHeader {
 display: flex;
+justify-content: space-between;
 align-items: center;
 gap: 12px;
-margin-top: 10px;
+flex-wrap: wrap;
 }
 
-.personaText {
-font-size: 12px;
+.sectionTitle {
+font-size: 16px;
+font-weight: 800;
+}
+
+.emptyArena {
+margin-top: 14px;
+padding: 18px;
+border-radius: 18px;
+border: 1px dashed rgba(255,255,255,0.18);
+background: rgba(255,255,255,0.03);
+}
+
+.emptyTitle {
+font-size: 18px;
+font-weight: 800;
+margin-bottom: 8px;
+}
+
+.sessionBox {
+margin-top: 18px;
+padding: 18px;
+border-radius: 22px;
+border: 1px solid rgba(255,255,255,0.10);
+background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+}
+
+.sessionBox.premium {
+position: relative;
+overflow: hidden;
+}
+
+.sessionBox.premium::before {
+content: "";
+position: absolute;
+inset: 0;
+background:
+radial-gradient(500px 220px at 50% 0%, rgba(59,130,246,0.12), transparent 65%);
+pointer-events: none;
+}
+
+.avatarStage {
+position: relative;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 320px;
+margin-bottom: 10px;
+}
+
+.avatarHalo {
+position: absolute;
+width: 270px;
+height: 270px;
+border-radius: 999px;
+filter: blur(24px);
 opacity: 0.75;
+transition: all 0.25s ease;
+}
+
+.avatarHalo.mood-listening {
+background: radial-gradient(circle, rgba(59,130,246,0.24), transparent 65%);
+animation: pulseHalo 1.2s infinite ease-in-out;
+}
+
+.avatarHalo.mood-thinking {
+background: radial-gradient(circle, rgba(245,158,11,0.20), transparent 65%);
+}
+
+.avatarHalo.mood-speaking {
+background: radial-gradient(circle, rgba(34,197,94,0.18), transparent 65%);
+animation: speakHalo 0.8s infinite ease-in-out;
+}
+
+.avatarHalo.mood-idle,
+.avatarHalo.mood-happy,
+.avatarHalo.mood-confused,
+.avatarHalo.mood-skeptical,
+.avatarHalo.mood-annoyed {
+background: radial-gradient(circle, rgba(255,255,255,0.10), transparent 70%);
+}
+
+.avatarCenter {
+display: flex;
+justify-content: center;
+align-items: center;
+min-width: 180px;
+position: relative;
+z-index: 2;
+}
+
+.avatarCenter.big img {
+width: 260px;
+max-width: 100%;
+height: auto;
+}
+
+.personaPanel {
+margin-top: 4px;
+margin-bottom: 14px;
+text-align: center;
+}
+
+.personaMain {
+font-size: 24px;
+font-weight: 800;
+line-height: 1.15;
 margin-top: 6px;
 }
 
+.personaSub {
+margin-top: 8px;
+font-size: 14px;
+opacity: 0.72;
+}
+
+.coachPanel {
+margin-top: 14px;
+padding: 14px;
+border-radius: 16px;
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.10);
+}
+
+.coachHeader {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 10px;
+}
+
 .replyBox {
-margin-top: 12px;
-padding: 12px;
-border-radius: 12px;
+margin-top: 14px;
+padding: 16px;
+border-radius: 18px;
 background: rgba(255,255,255,0.05);
 border: 1px solid rgba(255,255,255,0.10);
 }
 
+.replyBox.premium {
+background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+}
+
+.replyHeader {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+margin-bottom: 8px;
+}
+
 .replyLabel {
 font-size: 12px;
-opacity: 0.7;
-margin-bottom: 6px;
+opacity: 0.72;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+font-weight: 800;
 }
 
 .replyText {
 font-size: 15px;
-line-height: 1.45;
+line-height: 1.5;
+}
+
+.replyText.large {
+font-size: 22px;
+line-height: 1.35;
+font-weight: 600;
+}
+
+.signal {
+display: inline-flex;
+align-items: center;
+gap: 4px;
+}
+
+.signal span {
+width: 6px;
+height: 6px;
+border-radius: 999px;
+background: rgba(255,255,255,0.25);
+}
+
+.signal.live span {
+background: #60a5fa;
+animation: equalize 1s infinite ease-in-out;
+}
+
+.signal.thinking span {
+background: #f59e0b;
+animation: thinkingBlink 1s infinite ease-in-out;
+}
+
+.signal.speaking span {
+background: #22c55e;
+animation: equalize 0.7s infinite ease-in-out;
+}
+
+.signal span:nth-child(2) { animation-delay: 0.12s; }
+.signal span:nth-child(3) { animation-delay: 0.24s; }
+
+.scoreTop {
+display: grid;
+grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.2fr);
+gap: 16px;
+margin-top: 14px;
+}
+
+@media (max-width: 980px) {
+.scoreTop {
+grid-template-columns: 1fr;
+}
+}
+
+.scoreHero,
+.scoreBars,
+.scoreTile {
+background: rgba(255,255,255,0.05);
+border: 1px solid rgba(255,255,255,0.10);
+border-radius: 16px;
+padding: 18px;
+}
+
+.scoreEyebrow {
+font-size: 13px;
+opacity: 0.8;
+}
+
+.scoreBig {
+font-size: 58px;
+font-weight: 900;
+line-height: 1;
+margin-top: 8px;
+}
+
+.scoreSub {
+opacity: 0.72;
+margin-top: 4px;
+}
+
+.scoreSummary {
+margin-top: 10px;
+font-size: 14px;
+opacity: 0.92;
+line-height: 1.35;
+}
+
+.scoreGrid {
+display: grid;
+grid-template-columns: repeat(3, minmax(0,1fr));
+gap: 16px;
+margin-top: 16px;
+}
+
+@media (max-width: 980px) {
+.scoreGrid {
+grid-template-columns: 1fr;
+}
+}
+
+.rubricRow {
+padding: 10px 12px;
+border-radius: 12px;
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.08);
+margin-bottom: 10px;
+}
+
+.rubricTop {
+display: flex;
+justify-content: space-between;
+gap: 10px;
+}
+
+.rubricNotes {
+margin-top: 6px;
+opacity: 0.85;
+font-size: 13px;
+line-height: 1.35;
+}
+
+.nextBestAction {
+margin-top: 12px;
+padding-top: 12px;
+border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.rawBox {
+margin-top: 14px;
+background: rgba(0,0,0,0.25);
+border: 1px solid rgba(255,255,255,0.10);
+border-radius: 14px;
+padding: 14px;
+}
+
+.rawPre {
+white-space: pre-wrap;
+word-break: break-word;
+margin: 0;
+font-size: 12px;
+line-height: 1.35;
 }
 
 .lb {
@@ -1557,17 +1954,27 @@ border: 1px solid rgba(255,255,255,0.10);
 .lbName { font-weight: 800; }
 .lbRight { opacity: 0.9; }
 
-.avatarCenter {
-display: flex;
-justify-content: center;
-align-items: center;
-margin-top: 16px;
-margin-bottom: 16px;
-min-width: 180px;
+@keyframes pulseHalo {
+0% { transform: scale(1); opacity: 0.6; }
+50% { transform: scale(1.08); opacity: 0.95; }
+100% { transform: scale(1); opacity: 0.6; }
 }
 
-.avatarCenter img {
-width: 180px;
-height: auto;
+@keyframes speakHalo {
+0% { transform: scale(1); opacity: 0.55; }
+50% { transform: scale(1.06); opacity: 0.9; }
+100% { transform: scale(1); opacity: 0.55; }
+}
+
+@keyframes equalize {
+0% { transform: translateY(0px); opacity: 0.5; }
+50% { transform: translateY(-5px); opacity: 1; }
+100% { transform: translateY(0px); opacity: 0.5; }
+}
+
+@keyframes thinkingBlink {
+0% { opacity: 0.35; }
+50% { opacity: 1; }
+100% { opacity: 0.35; }
 }
 `;
