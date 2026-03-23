@@ -1,6 +1,3 @@
-
-Bella Wild <bbellawildd@gmail.com>	Mon, Mar 23, 2026 at 5:07 PM
-To: Bella Wild <bbellawildd@gmail.com>
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ProspectAvatar from "../components/ProspectAvatar";
