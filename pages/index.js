@@ -400,11 +400,18 @@ const [waitingForReply, setWaitingForReply] = useState(false);
 const [liveCoachVisible, setLiveCoachVisible] = useState(true);
 const [sessionStreak, setSessionStreak] = useState(0);
 const [sessionXp, setSessionXp] = useState(0);
+const [startingSession, setStartingSession] = useState(false);
 
 const recognitionRef = useRef(null);
 const silenceTimerRef = useRef(null);
 const finalTranscriptRef = useRef("");
+const audioContextRef = useRef(null);
+const analyserRef = useRef(null);
+const micStreamRef = useRef(null);
+const rafRef = useRef(null);
 
+const [micLevel, setMicLevel] = useState(0);
+  
 const sessionRef = useRef(null);
 const profileRef = useRef(null);
 const speakingRef = useRef(false);
@@ -517,13 +524,32 @@ if (preferred) setSelectedVoiceName(preferred.name);
 loadVoices();
 
 if (window.speechSynthesis) {
-window.speechSynthesis.onvoiceschanged = loadVoices;
+  window.speechSynthesis.onvoiceschanged = loadVoices;
 }
 
 return () => {
-if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+if (silenceTimerRef.current) {
+clearTimeout(silenceTimerRef.current);
+}
+
+if (typeof stopMicMeter === "function") {
+stopMicMeter();
+}
+
+if (micStreamRef.current) {
+micStreamRef.current.getTracks().forEach((track) => track.stop());
+}
+
+if (
+audioContextRef.current &&
+typeof audioContextRef.current.close === "function" &&
+audioContextRef.current.state !== "closed"
+) {
+audioContextRef.current.close();
+}
 };
 }, []);
+
 
 useEffect(() => {
 supabase.auth.getSession().then(({ data }) => {
@@ -545,7 +571,7 @@ useEffect(() => {
 if (profile?.company_id) loadCompany(profile.company_id);
 }, [profile?.company_id]);
 
-function startListening() {
+async function startListening() {
 const recognition = recognitionRef.current;
 
 if (!sessionRef.current) return;
@@ -555,6 +581,9 @@ if (speakingRef.current) return;
 
 setMessage("");
 finalTranscriptRef.current = "";
+
+await setupMicVisualizer():
+startMicMeter();
 
 try {
 recognition.start();
@@ -575,6 +604,8 @@ recognition.stop();
 }
 
 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+stopMicMeter();
+
 
 const finalText = (finalTranscriptRef.current || message || "").trim();
 
@@ -589,6 +620,7 @@ startListening();
 
 function stopListeningOnly() {
 const recognition = recognitionRef.current;
+  
 if (recognition && listeningRef.current) {
 try {
 recognition.stop();
@@ -597,6 +629,69 @@ recognition.stop();
 }
 }
 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+  stopMicMeter();
+}
+
+async function setupMicVisualizer() {
+if (typeof window === "undefined") return;
+if (analyserRef.current) return;
+
+try {
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+micStreamRef.current = stream;
+
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+if (!AudioContextClass) return;
+
+const audioContext = new AudioContextClass();
+audioContextRef.current = audioContext;
+
+const source = audioContext.createMediaStreamSource(stream);
+const analyser = audioContext.createAnalyser();
+analyser.fftSize = 256;
+analyser.smoothingTimeConstant = 0.8;
+
+source.connect(analyser);
+analyserRef.current = analyser;
+} catch (err) {
+// ignore mic visualizer failures
+}
+}
+
+function startMicMeter() {
+const analyser = analyserRef.current;
+if (!analyser) return;
+
+const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+const tick = () => {
+if (!analyserRef.current) return;
+
+analyser.getByteFrequencyData(dataArray);
+
+let sum = 0;
+for (let i = 0; i < dataArray.length; i += 1) {
+sum += dataArray[i];
+}
+
+const avg = sum / dataArray.length;
+const normalized = Math.max(0, Math.min(1, avg / 90));
+setMicLevel(normalized);
+
+rafRef.current = requestAnimationFrame(tick);
+};
+
+if (rafRef.current) cancelAnimationFrame(rafRef.current);
+tick();
+}
+
+function stopMicMeter() {
+  
+if (rafRef.current) {
+cancelAnimationFrame(rafRef.current);
+rafRef.current = null;
+}
+setMicLevel(0);
 }
 
 function speak(text) {
@@ -807,8 +902,12 @@ setSavingCompany(false);
 }
 
 async function startSession() {
+  if (startingSession) return;
+
+setStartingSession(true);
 setCurrentEmotion("idle");
 
+  try {
 if (!profile) return alert("No profile loaded.");
 if (!lockedIndustry) return alert("Manager must set company industry first.");
 
@@ -848,8 +947,11 @@ window.speechSynthesis.cancel();
 setTimeout(() => {
 startListening();
 }, 500);
+  } finally {
+    setStartingSession(false);
 }
-
+} 
+  
 async function sendVoiceMessage(transcript) {
 const activeSession = sessionRef.current;
 const activeProfile = profileRef.current;
@@ -900,7 +1002,9 @@ if (typeof window !== "undefined") {
 window.speechSynthesis.cancel();
 }
 
-const res = await fetch(`${API_BASE}/api/evaluate`, {
+const res = await fetch(`${API_BASE}
+
+/api/evaluate`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
@@ -1104,13 +1208,81 @@ Voice-first hands-free roleplay loop
 </div>
 </div>
 
-<button onClick={startSession}>
-{session ? "Restart Session" : "Start Session"}
+<button onClick={startSession}> disabled={startingSession}>
+{startingSession
+  ? "Starting..."
+  : session
+  ? "Restart Session"
+  : "Start Session"}
 </button>
 </div>
 
 {session ? (
+<div className="sessionBox">
+<div className="personaRow">
+<div className="avatarCenter">
+<ProspectAvatar speaking={speaking} emotion={currentEmotion} />
+</div>
+
+<div>
+<div className="personaText">
+<b>Prospect persona:</b> {session?.persona}
+</div>
+</div>
+</div>
+
+<div
+className={`micIndicator ${listening ? "active" : ""}`}
+style={{
+transform: `scale(${1 + micLevel * 0.35})`,
+boxShadow: listening
+? `0 0 ${18 + micLevel * 28}px rgba(59,130,246,${0.2 + micLevel * 0.45})`
+: "none"
+}}
+>
+<div className="micBars">
+<span style={{ height: `${12 + micLevel * 26}px` }} />
+<span style={{ height: `${18 + micLevel * 34}px` }} />
+<span style={{ height: `${12 + micLevel * 26}px` }} />
+</div>
+</div>
+
+  
+<div className="replyBox">
+<div className="replyLabel">
+{listening ? "Listening" : speaking ? "Prospect" : "Conversation"}
+</div>
+
+<div className="replyText">
+{listening
+? (message || "Listening...")
+: waitingForReply
+? "Thinking..."
+: (reply || "Prospect speaking")}
+</div>
+</div>
+
+<div className="row" style={{ marginTop: 12 }}>
+<button onClick={endAndGrade}>End Session & Grade</button>
+</div>
+</div>
+) : (
+<div className="emptyArena">
+<div className="emptyTitle">
+{startingSession ? "Starting session..." : "Ready to train"}
+</div>
+<div className="muted">
+{startingSession
+? "Building your prospect and turning on voice..."
+: "Start a session to enter the voice loop."}
+</div>
+</div>
+)}
+
+{session ? (
 <div className="sessionBox premium">
+
+  
 <div className="avatarStage">
 <div className={`avatarHalo mood-${sessionMood}`} />
 <div className="avatarCenter big">
@@ -1118,7 +1290,11 @@ Voice-first hands-free roleplay loop
 </div>
 </div>
 
-<div className="personaPanel">
+<div classNa
+  
+
+
+me="personaPanel">
 <Pill tone="blue">Prospect persona</Pill>
 <div className="personaMain">{session?.persona || "AI prospect loaded"}</div>
 <div className="personaSub">
@@ -1974,4 +2150,83 @@ border: 1px solid rgba(255,255,255,0.10);
 50% { opacity: 1; }
 100% { opacity: 0.35; }
 }
+
+button:disabled {
+opacity: 0.7;
+cursor: not-allowed;
+}
+
+.emptyArena {
+margin-top: 14px;
+padding: 18px;
+border-radius: 18px;
+border: 1px dashed rgba(255,255,255,0.18);
+background: rgba(255,255,255,0.03);
+}
+
+.emptyTitle {
+font-size: 18px;
+font-weight: 800;
+margin-bottom: 8px;
+}
+
+.micIndicator {
+margin: 14px auto;
+width: 82px;
+height: 82px;
+border-radius: 999px;
+display: flex;
+align-items: center;
+justify-content: center;
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.12);
+transition: transform 0.08s linear, box-shadow 0.08s linear, background 0.2s ease;
+}
+
+.micIndicator.active {
+background: radial-gradient(circle, rgba(59,130,246,0.28), rgba(59,130,246,0.08));
+}
+
+.micBars {
+width: 34px;
+height: 34px;
+display: flex;
+align-items: end;
+justify-content: center;
+gap: 4px;
+}
+
+.micBars span {
+width: 7px;
+border-radius: 999px;
+background: linear-gradient(180deg, #93c5fd, #3b82f6);
+display: block;
+transition: height 0.08s linear;
+}
+
+
+/* 🔥 ACTIVE LISTENING STATE */
+.micIndicator.active {
+background: radial-gradient(circle, rgba(59,130,246,0.35), rgba(59,130,246,0.08));
+box-shadow: 0 0 0 rgba(59,130,246,0.0);
+animation: micPulse 1.2s infinite;
+}
+
+/* 🔥 PULSE ANIMATION */
+@keyframes micPulse {
+0% {
+transform: scale(1);
+box-shadow: 0 0 0 0 rgba(59,130,246,0.5);
+}
+50% {
+transform: scale(1.08);
+box-shadow: 0 0 20px 6px rgba(59,130,246,0.35);
+}
+100% {
+transform: scale(1);
+box-shadow: 0 0 0 0 rgba(59,130,246,0.0);
+}
+}
+
+
 `;
