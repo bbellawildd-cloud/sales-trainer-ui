@@ -1342,6 +1342,7 @@ listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""
 </div>
 </div>
 
+<div className="sessionBox premium">
 <div className="avatarStage premiumStage">
 <div className="avatarGlowRing" />
 <div className="avatarCenter big">
