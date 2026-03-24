@@ -582,7 +582,7 @@ if (speakingRef.current) return;
 setMessage("");
 finalTranscriptRef.current = "";
 
-await setupMicVisualizer():
+await setupMicVisualizer();
 startMicMeter();
 
 try {
