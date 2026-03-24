@@ -614,7 +614,7 @@ sendVoiceMessage(finalText);
 } else if (sessionRef.current && !speakingRef.current) {
 setTimeout(() => {
 startListening();
-}, 400);
+}, 250);
 }
 }
 
@@ -712,20 +712,49 @@ return;
 
 synth.cancel();
 
-const utterance = new SpeechSynthesisUtterance(text);
-const pickedVoice =
-voices.find((v) => v.name === selectedVoiceName) ||
-voices.find((v) => /en-US/i.test(v.lang)) ||
+const cleanedText = String(text || "")
+  .replaced(/\s+/g, " ")
+  .replaced(/\.\.\./g, ".")
+  .replaced(/-/g, ", ")
+  .replaced(/-/g," ")
+  .trim();
+
+const utterance = new SpeechSynthesisUtterance(cleanedText);
+  
+const preferredVoice =
+voices.find((v) => /google us english/i.test(v.name)) ||
+voices.find((v) => /microsoft aria/i.test(v.name)) ||
+voices.find((v) => /microsoft jenny/i.test(v.name)) ||
+voices.find((v) => /samantha/i.test(v.name)) ||
+voices.find((v) => /alex/i.test(v.name)) ||
+voices.find((v) => /en.us/i.test(v.name)) ||
 voices[0];
 
-if (pickedVoice) {
-utterance.voice = pickedVoice;
+if (prefferedVoice) {
+utterance.voice = prefferedVoice;
+}
+
+let rate = 0.96;
+let pitch = 1.0;
+
+const personaText = String(sessionRef.current?.persona || "").toLowerCase();
+
+if (personaText.includes("skeptical")) {
+rate = 0.92;
+pitch = 0.95;
+} else if (personaText.includes("friendly")) {
+rate = 1.0;
+pitch = 1.05;
+} else if (personaText.includes("aggressive")) {
+rate = 1.02;
+pitch = 0.92;
 }
 
 utterance.lang = "en-US";
-utterance.rate = 1;
-utterance.pitch = 1;
+utterance.rate = rate;
+utterance.pitch = pitch;
 utterance.volume = 1;
+
 
 utterance.onstart = () => {
 setWaitingForReply(false);
@@ -735,7 +764,7 @@ setSpeaking(true);
 utterance.onend = () => {
 setSpeaking(false);
 
-const lower = String(text || "").toLowerCase();
+const lower = cleanedText.toLowerCase();
 const conversationEnded =
 lower.includes("i'm not interested") ||
 lower.includes("okay let's do it") ||
