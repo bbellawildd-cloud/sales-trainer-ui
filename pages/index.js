@@ -1208,7 +1208,7 @@ Voice-first hands-free roleplay loop
 </div>
 </div>
 
-<button onClick={startSession}> disabled={startingSession}>
+<button onClick={startSession} disabled={startingSession}>
 {startingSession
   ? "Starting..."
   : session
