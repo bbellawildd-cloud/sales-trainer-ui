@@ -1237,14 +1237,22 @@ Voice-first hands-free roleplay loop
 </div>
 </div>
 
-<button onClick={startSession} disabled={startingSession}>
+<button
+onClick={startSession}
+disabled={startingSession}
+className={`heroButton ${startingSession ? "loading" : ""}`}
+>
+<span className="heroButtonInner">
+<span className="heroButtonText">
 {startingSession
-  ? "Starting..."
-  : session
-  ? "Restart Session"
-  : "Start Session"}
+? "Starting..."
+: session
+? "Restart Session"
+: "Start Session"}
+</span>
+</span>
 </button>
-</div>
+
 
 {session ? (
 <div className="sessionBox">
@@ -1277,17 +1285,33 @@ boxShadow: listening
 </div>
 
   
-<div className="replyBox">
+<div className="replyBox premium glass">
+<div className="replyHeader">
 <div className="replyLabel">
-{listening ? "Listening" : speaking ? "Prospect" : "Conversation"}
+{listening
+? "Listening"
+: waitingForReply
+? "Thinking"
+: speaking
+? "Prospect"
+: "Conversation"}
 </div>
 
-<div className="replyText">
+<div
+className={`statusDot ${
+listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""
+}`}
+/>
+</div>
+
+<div className="replyText large">
 {listening
 ? (message || "Listening...")
 : waitingForReply
 ? "Thinking..."
-: (reply || "Prospect speaking")}
+: speaking
+? (reply || "Prospect speaking...")
+: (reply || "Ready for your next response.")}
 </div>
 </div>
 
@@ -1296,34 +1320,41 @@ boxShadow: listening
 </div>
 </div>
 ) : (
-<div className="emptyArena">
+<div className="emptyArena premiumEmpty">
+<div className="idleOrb">
+<div className="idleMic">🎤</div>
+</div>
+
 <div className="emptyTitle">
 {startingSession ? "Starting session..." : "Ready to train"}
 </div>
-<div className="muted">
+
+<div className="muted emptySub">
 {startingSession
 ? "Building your prospect and turning on voice..."
 : "Start a session to enter the voice loop."}
 </div>
+
+<div className="emptyChips">
+<Pill tone="blue">Live AI prospect</Pill>
+<Pill tone="green">Hands free loop</Pill>
+<Pill tone="amber">Instant coaching</Pill>
 </div>
-)}
+</div>
 
 {session ? (
 <div className="sessionBox premium">
 
   
-<div className="avatarStage">
+<div className="avatarStage premiumStage">
 <div className={`avatarHalo mood-${sessionMood}`} />
+<div className="avatarGlowRing">
 <div className="avatarCenter big">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
 </div>
 </div>
 
-<div classNa
-  
-
-
-me="personaPanel">
+<div className="personaPanel">
 <Pill tone="blue">Prospect persona</Pill>
 <div className="personaMain">{session?.persona || "AI prospect loaded"}</div>
 <div className="personaSub">
@@ -1400,16 +1431,7 @@ onClick={() => setLiveCoachVisible((v) => !v)}
 </div>
 
 ) : (
-<div className="emptyArena">
-<div className="emptyTitle">
-{startingSession ? "Starting session..." : "Ready to train"}
-</div>
-<div className="muted">
-{startingSession
-? "Building your prospect and turning on voice..."
-: "Start a session to enter the voice loop."}
-</div>
-</div>
+
 )
 {grade ? <Scorecard grade={grade} profile={profile} /> : null}
 </div>
@@ -1857,8 +1879,8 @@ margin-bottom: 8px;
 
 .sessionBox {
 margin-top: 18px;
-padding: 18px;
-border-radius: 22px;
+padding: 22px;
+border-radius: 24px;
 border: 1px solid rgba(255,255,255,0.10);
 background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
 }
@@ -1940,10 +1962,10 @@ text-align: center;
 }
 
 .personaMain {
-font-size: 24px;
+font-size: 26px;
 font-weight: 800;
 line-height: 1.15;
-margin-top: 6px;
+margin-top: 8px;
 }
 
 .personaSub {
@@ -2261,6 +2283,150 @@ transform: scale(1);
 box-shadow: 0 0 0 0 rgba(59,130,246,0.0);
 }
 }
+
+.premiumEmpty {
+display: flex;
+flex-direction: column;
+align-items: center;
+text-align: center;
+padding: 28px 20px;
+border: 1px solid rgba(255,255,255,0.12);
+background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+}
+
+.idleOrb {
+width: 96px;
+height: 96px;
+border-radius: 999px;
+display: flex;
+align-items: center;
+justify-content: center;
+margin-bottom: 16px;
+background: radial-gradient(circle, rgba(59,130,246,0.22), rgba(59,130,246,0.05));
+border: 1px solid rgba(255,255,255,0.12);
+box-shadow: 0 0 30px rgba(59,130,246,0.18);
+animation: idlePulse 2.4s infinite ease-in-out;
+}
+
+.idleMic {
+font-size: 34px;
+}
+
+.emptySub {
+max-width: 560px;
+}
+
+.emptyChips {
+margin-top: 14px;
+}
+
+.heroButton {
+position: relative;
+overflow: hidden;
+min-width: 180px;
+height: 52px;
+border-radius: 16px;
+background: linear-gradient(135deg, #4f8cff, #2563eb);
+box-shadow: 0 14px 34px rgba(37,99,235,0.35);
+}
+
+.heroButton::before {
+content: "";
+position: absolute;
+inset: 0;
+background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+transform: translateX(-100%);
+}
+
+.heroButton:hover::before {
+transform: translateX(100%);
+transition: transform 0.8s ease;
+}
+
+.heroButton.loading {
+opacity: 0.9;
+}
+
+.heroButtonInner {
+position: relative;
+z-index: 2;
+}
+
+.heroButtonText {
+font-weight: 800;
+letter-spacing: 0.01em;
+}
+
+.glass {
+backdrop-filter: blur(16px);
+}
+
+.premiumStage {
+position: relative;
+min-height: 300px;
+}
+
+.avatarGlowRing {
+position: absolute;
+width: 320px;
+height: 320px;
+border-radius: 999px;
+border: 1px solid rgba(255,255,255,0.08);
+box-shadow:
+inset 0 0 40px rgba(255,255,255,0.04),
+0 0 50px rgba(59,130,246,0.10);
+animation: slowSpin 14s linear infinite;
+}
+
+.replyBox.premium {
+border-radius: 20px;
+background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+border: 1px solid rgba(255,255,255,0.12);
+box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.statusDot {
+width: 12px;
+height: 12px;
+border-radius: 999px;
+background: rgba(255,255,255,0.18);
+}
+
+.statusDot.live {
+background: #60a5fa;
+box-shadow: 0 0 18px rgba(96,165,250,0.6);
+animation: liveBlink 1s infinite ease-in-out;
+}
+
+.statusDot.thinking {
+background: #f59e0b;
+box-shadow: 0 0 18px rgba(245,158,11,0.45);
+animation: liveBlink 1s infinite ease-in-out;
+}
+
+.statusDot.speaking {
+background: #22c55e;
+box-shadow: 0 0 18px rgba(34,197,94,0.45);
+animation: liveBlink 0.8s infinite ease-in-out;
+}
+
+@keyframes idlePulse {
+0% { transform: scale(1); opacity: 0.9; }
+50% { transform: scale(1.05); opacity: 1; }
+100% { transform: scale(1); opacity: 0.9; }
+}
+
+@keyframes liveBlink {
+0% { transform: scale(1); opacity: 0.7; }
+50% { transform: scale(1.15); opacity: 1; }
+100% { transform: scale(1); opacity: 0.7; }
+}
+
+@keyframes slowSpin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
 
 
 `;
