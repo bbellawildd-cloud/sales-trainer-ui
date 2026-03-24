@@ -1395,17 +1395,22 @@ onClick={() => setLiveCoachVisible((v) => !v)}
 <Pill tone="green">Hands-free loop active</Pill>
 </div>
 </div>
-) : (
-<div className="emptyArena">
-<div className="emptyTitle">Ready to train</div>
-<div className="muted">
-Start a session to enter the voice loop. The app will listen, think, speak, and listen again automatically.
-</div>
-</div>
-)}
+
 </div>
 </div>
 
+) : (
+<div className="emptyArena">
+<div className="emptyTitle">
+{startingSession ? "Starting session..." : "Ready to train"}
+</div>
+<div className="muted">
+{startingSession
+? "Building your prospect and turning on voice..."
+: "Start a session to enter the voice loop."}
+</div>
+</div>
+)
 {grade ? <Scorecard grade={grade} profile={profile} /> : null}
 </div>
 
