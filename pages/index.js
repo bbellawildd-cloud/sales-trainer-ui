@@ -1342,12 +1342,7 @@ listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""
 </div>
 </div>
 
-{session ? (
-<div className="sessionBox premium">
 
-  
-<div className="avatarStage premiumStage">
-<div className={`avatarHalo mood-${sessionMood}`} />
 <div className="avatarGlowRing">
 <div className="avatarCenter big">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
