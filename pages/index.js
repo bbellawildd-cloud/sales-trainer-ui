@@ -592,7 +592,7 @@ recognition.start();
 }
 }
 
-function stopListeningAndSend() {
+async function stopListeningAndSend() {
 const recognition = recognitionRef.current;
 
 if (recognition && listeningRef.current) {
