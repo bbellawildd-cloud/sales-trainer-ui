@@ -1342,7 +1342,7 @@ listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""
 </div>
 </div>
 
-<div className="avataStage premiumStage">
+<div className="avatarStage premiumStage">
 <div className="avatarGlowRing" />
 <div className="avatarCenter big">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
