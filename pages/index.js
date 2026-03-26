@@ -9,6 +9,9 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+/* =========================
+Helpers
+========================= */
 function asScore100(v) {
 if (v == null) return null;
 const x = Number(v);
@@ -117,28 +120,176 @@ raw: g
 };
 }
 
+function getBadgesFromGrade(raw) {
+const g = raw || {};
+const rubric = g.rubric || g.scores || {};
+const badges = [];
+
+const opener = Number(rubric.opener ?? 0);
+const discovery = Number(rubric.discovery ?? 0);
+const objections = Number(rubric.objection_handling ?? 0);
+const closing = Number(rubric.closing ?? 0);
+const clarity = Number(rubric.clarity ?? 0);
+const confidence = Number(g?.delivery?.confidence ?? 0);
+
+if (opener >= 85) badges.push("Rapport Builder");
+if (discovery >= 85) badges.push("Discovery Master");
+if (objections >= 85) badges.push("Objection Slayer");
+if (closing >= 85) badges.push("Closing Machine");
+if (clarity >= 85) badges.push("Clear Communicator");
+if (confidence >= 85) badges.push("Confident Closer");
+
+if (!badges.length && Number(g.overall_score ?? g.overall ?? 0) >= 70) {
+badges.push("Solid Session");
+}
+
+return badges;
+}
+
+function buildLiveCoachHints(text) {
+const t = String(text || "").toLowerCase().trim();
+if (!t) return [];
+
+const hints = [];
+const words = t.split(/\s+/).filter(Boolean);
+const questionCount = (t.match(/\?/g) || []).length;
+const fillerCount = (t.match(/\b(um|uh|like|you know|basically|actually)\b/g) || []).length;
+const weakWords = (t.match(/\b(maybe|kind of|sort of|hopefully|i think|probably)\b/g) || []).length;
+
+if (fillerCount >= 2) hints.push({ label: "Too many filler words", tone: "red" });
+if (weakWords >= 2) hints.push({ label: "Sound more confident", tone: "amber" });
+if (questionCount === 0 && words.length > 12) hints.push({ label: "Ask a question", tone: "blue" });
+if (!/\b(pain|problem|issue|challenge|currently|today|process)\b/.test(t)) {
+hints.push({ label: "Discover pain deeper", tone: "amber" });
+}
+if (words.length > 35) hints.push({ label: "Too much talking", tone: "red" });
+if (!/\b(why|how|what|walk me through|tell me about)\b/.test(t)) {
+hints.push({ label: "Use discovery language", tone: "blue" });
+}
+
+return hints.slice(0, 4);
+}
+
+function computeSessionMood({ listening, speaking, waitingForReply, currentEmotion }) {
+if (waitingForReply) return "thinking";
+if (listening) return "listening";
+if (speaking) return "speaking";
+return currentEmotion || "idle";
+}
+
+function buildPerformanceDeck({ grade, liveCoachHints, scriptText, sessionActive }) {
+if (grade) {
+const n = normalizeGrade(grade);
+const deck = [];
+
+if (n.fixes?.length) {
+n.fixes.slice(0, 2).forEach((f) => deck.push({ label: String(f), tone: "red" }));
+}
+
+if (n.stuckPoints?.length) {
+n.stuckPoints.slice(0, 2).forEach((s) => deck.push({ label: `Fix: ${String(s)}`, tone: "amber" }));
+}
+
+if (n.nextBestAction) {
+deck.unshift({ label: String(n.nextBestAction), tone: "blue" });
+}
+
+if (!deck.length) {
+deck.push(
+{ label: "Ask sharper questions", tone: "blue" },
+{ label: "Tie pain to value", tone: "amber" },
+{ label: "Close with confidence", tone: "green" }
+);
+}
+
+return deck.slice(0, 5);
+}
+
+if (sessionActive && liveCoachHints.length) {
+return liveCoachHints.slice(0, 5);
+}
+
+const defaults = [
+{ label: "Ask questions", tone: "blue" },
+{ label: "Find pain", tone: "amber" },
+{ label: "Sound confident", tone: "green" },
+{ label: "Avoid rambling", tone: "red" }
+];
+
+if (scriptText?.trim()) {
+defaults.unshift({ label: "Hit key script points", tone: "blue" });
+}
+
+return defaults.slice(0, 5);
+}
+
+function extractScriptBullets(text) {
+const lines = String(text || "")
+.split("\n")
+.map((line) => line.trim())
+.filter(Boolean);
+
+const candidates = lines
+.map((line) => line.replace(/^[-*•\d.)\s]+/, "").trim())
+.filter((line) => line.length >= 12);
+
+return candidates.slice(0, 6);
+}
+
+function detectConversationOutcome(text, backendOutcome) {
+const t = String(text || "").toLowerCase();
+
+if (backendOutcome === "won" || backendOutcome === "buy" || backendOutcome === "bought") {
+return "won";
+}
+if (backendOutcome === "lost" || backendOutcome === "not_buying" || backendOutcome === "no_buy") {
+return "lost";
+}
+
+const wonPhrases = [
+"let's do it",
+"okay let's do it",
+"okay, let's do it",
+"send me the agreement",
+"send me the contract",
+"let's move forward",
+"i'm in",
+"i'll buy",
+"we'll do it",
+"book me",
+"let's get started"
+];
+
+const lostPhrases = [
+"i'm not interested",
+"not interested",
+"we're not interested",
+"we will pass",
+"we'll pass",
+"no thanks",
+"no thank you",
+"not a fit",
+"not moving forward",
+"stop calling",
+"take me off",
+"don't call again"
+];
+
+if (wonPhrases.some((p) => t.includes(p))) return "won";
+if (lostPhrases.some((p) => t.includes(p))) return "lost";
+return null;
+}
+
+/* =========================
+UI bits
+========================= */
 function Pill({ children, tone = "default" }) {
 const map = {
-default: {
-bg: "rgba(255,255,255,0.08)",
-border: "rgba(255,255,255,0.12)"
-},
-blue: {
-bg: "rgba(59,130,246,0.16)",
-border: "rgba(59,130,246,0.28)"
-},
-green: {
-bg: "rgba(34,197,94,0.14)",
-border: "rgba(34,197,94,0.28)"
-},
-amber: {
-bg: "rgba(245,158,11,0.14)",
-border: "rgba(245,158,11,0.28)"
-},
-red: {
-bg: "rgba(239,68,68,0.14)",
-border: "rgba(239,68,68,0.28)"
-}
+default: { bg: "rgba(255,255,255,0.08)", border: "rgba(255,255,255,0.12)" },
+blue: { bg: "rgba(59,130,246,0.16)", border: "rgba(59,130,246,0.28)" },
+green: { bg: "rgba(34,197,94,0.14)", border: "rgba(34,197,94,0.28)" },
+amber: { bg: "rgba(245,158,11,0.14)", border: "rgba(245,158,11,0.28)" },
+red: { bg: "rgba(239,68,68,0.14)", border: "rgba(239,68,68,0.28)" }
 };
 
 const style = map[tone] || map.default;
@@ -201,32 +352,6 @@ transition: "width 250ms ease"
 );
 }
 
-function getBadgesFromGrade(raw) {
-const g = raw || {};
-const rubric = g.rubric || g.scores || {};
-const badges = [];
-
-const opener = Number(rubric.opener ?? 0);
-const discovery = Number(rubric.discovery ?? 0);
-const objections = Number(rubric.objection_handling ?? 0);
-const closing = Number(rubric.closing ?? 0);
-const clarity = Number(rubric.clarity ?? 0);
-const confidence = Number(g?.delivery?.confidence ?? 0);
-
-if (opener >= 85) badges.push("Rapport Builder");
-if (discovery >= 85) badges.push("Discovery Master");
-if (objections >= 85) badges.push("Objection Slayer");
-if (closing >= 85) badges.push("Closing Machine");
-if (clarity >= 85) badges.push("Clear Communicator");
-if (confidence >= 85) badges.push("Confident Closer");
-
-if (!badges.length && Number(g.overall_score ?? 0) >= 70) {
-badges.push("Solid Session");
-}
-
-return badges;
-}
-
 function Scorecard({ grade, profile }) {
 const n = normalizeGrade(grade);
 const [showRaw, setShowRaw] = useState(false);
@@ -254,12 +379,14 @@ onClick={() => setShowRaw((s) => !s)}
 <div className="scoreBig">{n.overall == null ? "—" : n.overall}</div>
 <div className="scoreSub">/100</div>
 {n.oneLine ? <div className="scoreSummary">{n.oneLine}</div> : null}
+
 <div style={{ marginTop: 12 }}>
 <Pill tone="blue">{profile?.is_manager ? "Manager view" : "Rep view"}</Pill>
 {n.stageReached ? <Pill tone="amber">Stage: {String(n.stageReached)}</Pill> : null}
 {n.delivery?.wpm != null ? <Pill>Speed: {n.delivery.wpm} wpm</Pill> : null}
 {n.delivery?.talkRatio != null ? <Pill>Talk ratio: {n.delivery.talkRatio}</Pill> : null}
 </div>
+
 {badges.length ? (
 <div style={{ marginTop: 10 }}>
 {badges.map((badge, i) => (
@@ -283,21 +410,27 @@ onClick={() => setShowRaw((s) => !s)}
 <div className="scoreTile">
 <h3>What went well</h3>
 <div style={{ marginTop: 10 }}>
-{n.wins.length ? n.wins.map((w, i) => <Pill key={i} tone="green">{String(w)}</Pill>) : <div className="muted">—</div>}
+{n.wins.length
+? n.wins.map((w, i) => <Pill key={i} tone="green">{String(w)}</Pill>)
+: <div className="muted">—</div>}
 </div>
 </div>
 
 <div className="scoreTile">
 <h3>Needs coaching</h3>
 <div style={{ marginTop: 10 }}>
-{n.fixes.length ? n.fixes.map((f, i) => <Pill key={i} tone="red">{String(f)}</Pill>) : <div className="muted">—</div>}
+{n.fixes.length
+? n.fixes.map((f, i) => <Pill key={i} tone="red">{String(f)}</Pill>)
+: <div className="muted">—</div>}
 </div>
 </div>
 
 <div className="scoreTile">
 <h3>Where you got stuck</h3>
 <div style={{ marginTop: 10 }}>
-{n.stuckPoints.length ? n.stuckPoints.map((s, i) => <Pill key={i} tone="amber">{String(s)}</Pill>) : <div className="muted">—</div>}
+{n.stuckPoints.length
+? n.stuckPoints.map((s, i) => <Pill key={i} tone="amber">{String(s)}</Pill>)
+: <div className="muted">—</div>}
 </div>
 </div>
 </div>
@@ -338,37 +471,9 @@ n.rubricItems.map((it, idx) => (
 );
 }
 
-function buildLiveCoachHints(text) {
-const t = String(text || "").toLowerCase().trim();
-if (!t) return [];
-
-const hints = [];
-const words = t.split(/\s+/).filter(Boolean);
-const questionCount = (t.match(/\?/g) || []).length;
-const fillerCount = (t.match(/\b(um|uh|like|you know|basically|actually)\b/g) || []).length;
-const weakWords = (t.match(/\b(maybe|kind of|sort of|hopefully|i think|probably)\b/g) || []).length;
-
-if (fillerCount >= 2) hints.push({ label: "Too many filler words", tone: "red" });
-if (weakWords >= 2) hints.push({ label: "Sound more confident", tone: "amber" });
-if (questionCount === 0 && words.length > 12) hints.push({ label: "Ask a question", tone: "blue" });
-if (!/\b(pain|problem|issue|challenge|currently|today|process)\b/.test(t)) {
-hints.push({ label: "Discover pain deeper", tone: "amber" });
-}
-if (words.length > 35) hints.push({ label: "Too much talking", tone: "red" });
-if (!/\b(why|how|what|walk me through|tell me about)\b/.test(t)) {
-hints.push({ label: "Use discovery language", tone: "blue" });
-}
-
-return hints.slice(0, 4);
-}
-
-function computeSessionMood({ listening, speaking, waitingForReply, currentEmotion }) {
-if (waitingForReply) return "thinking";
-if (listening) return "listening";
-if (speaking) return "speaking";
-return currentEmotion || "idle";
-}
-
+/* =========================
+Page
+========================= */
 export default function Home() {
 const [authUser, setAuthUser] = useState(null);
 const [email, setEmail] = useState("");
@@ -401,6 +506,12 @@ const [liveCoachVisible, setLiveCoachVisible] = useState(true);
 const [sessionStreak, setSessionStreak] = useState(0);
 const [sessionXp, setSessionXp] = useState(0);
 const [startingSession, setStartingSession] = useState(false);
+const [endingSession, setEndingSession] = useState(false);
+const [autoOutcome, setAutoOutcome] = useState("");
+const [scriptText, setScriptText] = useState("");
+const [scriptFileName, setScriptFileName] = useState("");
+const [scriptPoints, setScriptPoints] = useState([]);
+const [micLevel, setMicLevel] = useState(0);
 
 const recognitionRef = useRef(null);
 const silenceTimerRef = useRef(null);
@@ -410,12 +521,11 @@ const analyserRef = useRef(null);
 const micStreamRef = useRef(null);
 const rafRef = useRef(null);
 
-const [micLevel, setMicLevel] = useState(0);
-  
 const sessionRef = useRef(null);
 const profileRef = useRef(null);
 const speakingRef = useRef(false);
 const listeningRef = useRef(false);
+const endingSessionRef = useRef(false);
 
 const difficulty = useMemo(() => {
 if (!profile) return 1;
@@ -442,6 +552,15 @@ const xp = profile?.total_xp || 0;
 return Math.min(100, xp % 100);
 }, [profile?.total_xp]);
 
+const performanceDeck = useMemo(() => {
+return buildPerformanceDeck({
+grade,
+liveCoachHints,
+scriptText,
+sessionActive: Boolean(session)
+});
+}, [grade, liveCoachHints, scriptText, session]);
+
 useEffect(() => {
 sessionRef.current = session;
 }, [session]);
@@ -457,6 +576,10 @@ speakingRef.current = speaking;
 useEffect(() => {
 listeningRef.current = listening;
 }, [listening]);
+
+useEffect(() => {
+endingSessionRef.current = endingSession;
+}, [endingSession]);
 
 useEffect(() => {
 if (typeof window === "undefined") return;
@@ -495,7 +618,7 @@ setMessage(`${finalText} ${interim}`.trim());
 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 silenceTimerRef.current = setTimeout(() => {
 stopListeningAndSend();
-}, 1800);
+}, 1400);
 };
 
 rec.onerror = () => {
@@ -512,9 +635,7 @@ const available = window.speechSynthesis?.getVoices?.() || [];
 setVoices(available);
 
 const preferred =
-available.find((v) =>
-/Siri|Google US English|Jenny|Aria|Guy|Christopher/i.test(v.name)
-) ||
+available.find((v) => /Siri|Google US English|Jenny|Aria|Guy|Christopher/i.test(v.name)) ||
 available.find((v) => /en-US/i.test(v.lang)) ||
 available[0];
 
@@ -524,17 +645,12 @@ if (preferred) setSelectedVoiceName(preferred.name);
 loadVoices();
 
 if (window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = loadVoices;
+window.speechSynthesis.onvoiceschanged = loadVoices;
 }
 
 return () => {
-if (silenceTimerRef.current) {
-clearTimeout(silenceTimerRef.current);
-}
-
-if (typeof stopMicMeter === "function") {
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 stopMicMeter();
-}
 
 if (micStreamRef.current) {
 micStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -549,7 +665,6 @@ audioContextRef.current.close();
 }
 };
 }, []);
-
 
 useEffect(() => {
 supabase.auth.getSession().then(({ data }) => {
@@ -570,67 +685,6 @@ if (authUser?.id) loadProfile(authUser.id);
 useEffect(() => {
 if (profile?.company_id) loadCompany(profile.company_id);
 }, [profile?.company_id]);
-
-async function startListening() {
-const recognition = recognitionRef.current;
-
-if (!sessionRef.current) return;
-if (!recognition) return;
-if (listeningRef.current) return;
-if (speakingRef.current) return;
-
-setMessage("");
-finalTranscriptRef.current = "";
-
-await setupMicVisualizer();
-startMicMeter();
-
-try {
-recognition.start();
-} catch (err) {
-// ignore if already started
-}
-}
-
-async function stopListeningAndSend() {
-const recognition = recognitionRef.current;
-
-if (recognition && listeningRef.current) {
-try {
-recognition.stop();
-} catch (err) {
-// ignore
-}
-}
-
-if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-stopMicMeter();
-
-
-const finalText = (finalTranscriptRef.current || message || "").trim();
-
-if (finalText) {
-sendVoiceMessage(finalText);
-} else if (sessionRef.current && !speakingRef.current) {
-setTimeout(() => {
-startListening();
-}, 250);
-}
-}
-
-function stopListeningOnly() {
-const recognition = recognitionRef.current;
-  
-if (recognition && listeningRef.current) {
-try {
-recognition.stop();
-} catch (err) {
-// ignore
-}
-}
-if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-  stopMicMeter();
-}
 
 async function setupMicVisualizer() {
 if (typeof window === "undefined") return;
@@ -654,7 +708,7 @@ analyser.smoothingTimeConstant = 0.8;
 source.connect(analyser);
 analyserRef.current = analyser;
 } catch (err) {
-// ignore mic visualizer failures
+// ignore visualizer failures
 }
 }
 
@@ -666,7 +720,6 @@ const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
 const tick = () => {
 if (!analyserRef.current) return;
-
 analyser.getByteFrequencyData(dataArray);
 
 let sum = 0;
@@ -686,7 +739,6 @@ tick();
 }
 
 function stopMicMeter() {
-  
 if (rafRef.current) {
 cancelAnimationFrame(rafRef.current);
 rafRef.current = null;
@@ -694,7 +746,77 @@ rafRef.current = null;
 setMicLevel(0);
 }
 
-function speak(text) {
+async function startListening() {
+const recognition = recognitionRef.current;
+
+if (!sessionRef.current) return;
+if (!recognition) return;
+if (listeningRef.current) return;
+if (speakingRef.current) return;
+if (endingSessionRef.current) return;
+
+setMessage("");
+finalTranscriptRef.current = "";
+
+await setupMicVisualizer();
+startMicMeter();
+
+try {
+recognition.start();
+} catch (err) {
+// ignore already started
+}
+}
+
+async function stopListeningAndSend() {
+const recognition = recognitionRef.current;
+
+if (recognition && listeningRef.current) {
+try {
+recognition.stop();
+} catch (err) {
+// ignore
+}
+}
+
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+stopMicMeter();
+
+const finalText = (finalTranscriptRef.current || message || "").trim();
+
+if (finalText) {
+sendVoiceMessage(finalText);
+} else if (sessionRef.current && !speakingRef.current && !endingSessionRef.current) {
+setTimeout(() => {
+startListening();
+}, 250);
+}
+}
+
+function stopListeningOnly() {
+const recognition = recognitionRef.current;
+
+if (recognition && listeningRef.current) {
+try {
+recognition.stop();
+} catch (err) {
+// ignore
+}
+}
+
+if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+stopMicMeter();
+}
+
+async function autoFinishSession(reason = "") {
+if (endingSessionRef.current) return;
+if (!sessionRef.current) return;
+
+setAutoOutcome(reason);
+await endAndGrade({ auto: true, outcome: reason });
+}
+
+function speak(text, meta = {}) {
 if (!text || typeof window === "undefined") {
 setWaitingForReply(false);
 return;
@@ -713,30 +835,29 @@ return;
 synth.cancel();
 
 const cleanedText = String(text || "")
-  .replaced(/\s+/g, " ")
-  .replaced(/\.\.\./g, ".")
-  .replaced(/-/g, ", ")
-  .replaced(/-/g," ")
-  .trim();
+.replace(/\s+/g, " ")
+.replace(/\.\.\./g, ".")
+.replace(/—/g, ", ")
+.replace(/-/g, " ")
+.trim();
 
 const utterance = new SpeechSynthesisUtterance(cleanedText);
-  
+
 const preferredVoice =
 voices.find((v) => /google us english/i.test(v.name)) ||
 voices.find((v) => /microsoft aria/i.test(v.name)) ||
 voices.find((v) => /microsoft jenny/i.test(v.name)) ||
 voices.find((v) => /samantha/i.test(v.name)) ||
 voices.find((v) => /alex/i.test(v.name)) ||
-voices.find((v) => /en.us/i.test(v.name)) ||
+voices.find((v) => /en-us/i.test(v.lang)) ||
 voices[0];
 
-if (prefferedVoice) {
-utterance.voice = prefferedVoice;
+if (preferredVoice) {
+utterance.voice = preferredVoice;
 }
 
 let rate = 0.96;
 let pitch = 1.0;
-
 const personaText = String(sessionRef.current?.persona || "").toLowerCase();
 
 if (personaText.includes("skeptical")) {
@@ -755,22 +876,21 @@ utterance.rate = rate;
 utterance.pitch = pitch;
 utterance.volume = 1;
 
-
 utterance.onstart = () => {
 setWaitingForReply(false);
 setSpeaking(true);
 };
 
-utterance.onend = () => {
+utterance.onend = async () => {
 setSpeaking(false);
 
-const lower = cleanedText.toLowerCase();
-const conversationEnded =
-lower.includes("i'm not interested") ||
-lower.includes("okay let's do it") ||
-lower.includes("okay, let's do it");
+const outcome = detectConversationOutcome(cleanedText, meta?.conversationOutcome);
+if (outcome && sessionRef.current) {
+await autoFinishSession(outcome);
+return;
+}
 
-if (!conversationEnded && sessionRef.current) {
+if (!endingSessionRef.current && sessionRef.current) {
 setTimeout(() => {
 startListening();
 }, 700);
@@ -781,7 +901,7 @@ utterance.onerror = () => {
 setWaitingForReply(false);
 setSpeaking(false);
 
-if (sessionRef.current) {
+if (!endingSessionRef.current && sessionRef.current) {
 setTimeout(() => {
 startListening();
 }, 700);
@@ -794,7 +914,7 @@ synth.speak(utterance);
 setWaitingForReply(false);
 setSpeaking(false);
 
-if (sessionRef.current) {
+if (!endingSessionRef.current && sessionRef.current) {
 setTimeout(() => {
 startListening();
 }, 700);
@@ -855,12 +975,13 @@ redirectTo: `${window.location.origin}/reset-password`
 });
 
 if (error) return alert(error.message);
-alert("Reset email sent ✅ Check inbox/spam.");
+alert("Reset email sent. Check inbox or spam.");
 }
 
 async function signOut() {
 stopListeningOnly();
 setWaitingForReply(false);
+setEndingSession(false);
 
 if (typeof window !== "undefined") {
 window.speechSynthesis.cancel();
@@ -879,13 +1000,14 @@ setMessage("");
 setCurrentEmotion("idle");
 setSessionXp(0);
 setSessionStreak(0);
+setAutoOutcome("");
 }
 
 async function createCompanyAndProfile() {
 if (!authUser?.id) return;
 
 if (!repName.trim() || !companyName.trim()) {
-return alert("Enter your name + company name");
+return alert("Enter your name and company name");
 }
 
 const { data: companyRow, error: cErr } = await supabase
@@ -924,27 +1046,55 @@ const { error } = await supabase
 if (error) return alert(error.message);
 
 await loadCompany(profile.company_id);
-alert("Company industry saved ✅ Reps will be locked to this.");
+alert("Company industry saved. Reps will be locked to this.");
 } finally {
 setSavingCompany(false);
 }
 }
 
+async function handleScriptUpload(event) {
+const file = event.target.files?.[0];
+if (!file) return;
+
+try {
+const text = await file.text();
+setScriptText(text);
+setScriptFileName(file.name);
+setScriptPoints(extractScriptBullets(text));
+} catch (err) {
+alert("Could not read that file. Use a .txt, .md, or another plain text file.");
+}
+}
+
+function clearScript() {
+setScriptText("");
+setScriptFileName("");
+setScriptPoints([]);
+}
+
 async function startSession() {
-  if (startingSession) return;
+if (startingSession) return;
 
 setStartingSession(true);
 setCurrentEmotion("idle");
 
-  try {
-if (!profile) return alert("No profile loaded.");
-if (!lockedIndustry) return alert("Manager must set company industry first.");
+try {
+if (!profile) {
+alert("No profile loaded.");
+return;
+}
+if (!lockedIndustry) {
+alert("Manager must set company industry first.");
+return;
+}
 
 setGrade(null);
 setReply("");
 setWaitingForReply(false);
 setSessionXp(0);
 setSessionStreak(0);
+setAutoOutcome("");
+setEndingSession(false);
 
 const res = await fetch(`${API_BASE}/api/session/start`, {
 method: "POST",
@@ -952,12 +1102,17 @@ headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
 userId: profile.user_id,
 industry: lockedIndustry,
-difficulty
+difficulty,
+scriptText: scriptText || "",
+scriptPoints
 })
 });
 
 const data = await res.json();
-if (!res.ok) return alert(data.error || "Failed to start session");
+if (!res.ok) {
+alert(data.error || "Failed to start session");
+return;
+}
 
 setSession(data.session);
 setCurrentEmotion("idle");
@@ -976,18 +1131,18 @@ window.speechSynthesis.cancel();
 setTimeout(() => {
 startListening();
 }, 500);
-  } finally {
-    setStartingSession(false);
+} finally {
+setStartingSession(false);
 }
-} 
-  
+}
+
 async function sendVoiceMessage(transcript) {
 const activeSession = sessionRef.current;
 const activeProfile = profileRef.current;
 
-if (!activeSession) return;
-if (!activeProfile) return;
+if (!activeSession || !activeProfile) return;
 if (!transcript.trim()) return;
+if (endingSessionRef.current) return;
 
 setWaitingForReply(true);
 setReply("");
@@ -999,14 +1154,17 @@ headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
 userId: activeProfile.user_id,
 sessionId: activeSession.id,
-message: transcript.trim()
+message: transcript.trim(),
+scriptText: scriptText || "",
+scriptPoints
 })
 });
 
 const data = await res.json();
 if (!res.ok) {
 setWaitingForReply(false);
-return alert(data.error || "Chat failed");
+alert(data.error || "Chat failed");
+return;
 }
 
 setReply(data.reply || "");
@@ -1017,12 +1175,23 @@ const bonusXp = Math.min(12, Math.max(3, Math.round(transcript.trim().split(/\s+
 setSessionXp((x) => x + bonusXp);
 setSessionStreak((s) => s + 1);
 
-speak(data.reply || "");
+const immediateOutcome = detectConversationOutcome(data.reply || "", data.conversationOutcome);
+if (immediateOutcome && !speakingRef.current) {
+speak(data.reply || "", { conversationOutcome: immediateOutcome });
+return;
 }
 
-async function endAndGrade() {
-if (!session) return;
+speak(data.reply || "", { conversationOutcome: data.conversationOutcome });
+}
 
+async function endAndGrade(options = {}) {
+const activeSession = sessionRef.current;
+const activeProfile = profileRef.current;
+
+if (!activeSession || !activeProfile) return;
+if (endingSessionRef.current) return;
+
+setEndingSession(true);
 setWaitingForReply(false);
 setCurrentEmotion("idle");
 stopListeningOnly();
@@ -1031,28 +1200,39 @@ if (typeof window !== "undefined") {
 window.speechSynthesis.cancel();
 }
 
-const res = await fetch(`${API_BASE}
-
-/api/evaluate`, {
+try {
+const res = await fetch(`${API_BASE}/api/evaluate`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
-userId: profile.user_id,
-sessionId: session.id
+userId: activeProfile.user_id,
+sessionId: activeSession.id,
+scriptText: scriptText || "",
+scriptPoints,
+outcome: options.outcome || autoOutcome || null,
+autoEnded: Boolean(options.auto)
 })
 });
 
 const data = await res.json();
-if (!res.ok) return alert(data.error || "Evaluate failed");
+
+if (!res.ok) {
+alert(data.error || "Evaluate failed");
+return;
+}
 
 setGrade(data);
 setCurrentEmotion("idle");
 setSession(null);
-await loadProfile(profile.user_id);
 
-const lbRes = await fetch(`${API_BASE}/api/leaderboard?userId=${profile.user_id}`);
+await loadProfile(activeProfile.user_id);
+
+const lbRes = await fetch(`${API_BASE}/api/leaderboard?userId=${activeProfile.user_id}`);
 const lb = await lbRes.json();
 if (lbRes.ok) setLeaderboard(lb.leaderboard || []);
+} finally {
+setEndingSession(false);
+}
 }
 
 async function sendRepInvite() {
@@ -1076,7 +1256,7 @@ if (!res.ok) {
 throw new Error(data.error || data.details || "Failed to send invite");
 }
 
-alert("✅ Invite sent!");
+alert("Invite sent.");
 setInviteName("");
 setInviteEmail("");
 } catch (err) {
@@ -1086,6 +1266,9 @@ setSendingInvite(false);
 }
 }
 
+/* =========================
+Auth screens
+========================= */
 if (!authUser) {
 return (
 <div className="app">
@@ -1140,7 +1323,7 @@ return (
 <div className="content">
 <div className="card authCard">
 <h2>Set up your account</h2>
-<p className="muted">Create your company + manager profile.</p>
+<p className="muted">Create your company and manager profile.</p>
 
 <div className="field">
 <label>Your name</label>
@@ -1172,6 +1355,9 @@ onChange={(e) => setCompanyName(e.target.value)}
 );
 }
 
+/* =========================
+Main app
+========================= */
 return (
 <div className="app">
 <div className="topbar">
@@ -1211,8 +1397,10 @@ Company: <b>{company?.name || "—"}</b> • Industry: <b>{lockedIndustry}</b> �
 <div className="statValue">+{sessionXp}</div>
 </div>
 <div className="statBox">
-<div className="statLabel">Prospect Mood</div>
-<div className="statValue moodText">{sessionMood}</div>
+<div className="statLabel">Auto finish</div>
+<div className="statValue moodText">
+{autoOutcome ? autoOutcome : "Live"}
+</div>
 </div>
 </div>
 
@@ -1232,14 +1420,12 @@ Logged in as <b>{profile?.rep_name}</b> • Level <b>{profile?.level}</b>
 <div className="sessionHeader">
 <div>
 <div className="sectionTitle">AI Prospect</div>
-<div className="muted">
-Voice-first hands-free roleplay loop
-</div>
+<div className="muted">Voice first hands free roleplay loop</div>
 </div>
 
 <button
 onClick={startSession}
-disabled={startingSession}
+disabled={startingSession || endingSession}
 className={`heroButton ${startingSession ? "loading" : ""}`}
 >
 <span className="heroButtonInner">
@@ -1252,98 +1438,63 @@ className={`heroButton ${startingSession ? "loading" : ""}`}
 </span>
 </span>
 </button>
-
-
-{session ? (
-<div className="sessionBox">
-<div className="personaRow">
-<div className="avatarCenter">
-<ProspectAvatar speaking={speaking} emotion={currentEmotion} />
 </div>
 
+<div className="scriptCard">
+<div className="scriptHeader">
 <div>
-<div className="personaText">
-<b>Prospect persona:</b> {session?.persona}
+<div className="sectionTitle">Optional Script Upload</div>
+<div className="muted">
+The AI uses this for guidance and checks whether key points are being hit.
 </div>
 </div>
 </div>
 
-<div
-className={`micIndicator ${listening ? "active" : ""}`}
-style={{
-transform: `scale(${1 + micLevel * 0.35})`,
-boxShadow: listening
-? `0 0 ${18 + micLevel * 28}px rgba(59,130,246,${0.2 + micLevel * 0.45})`
-: "none"
+<div className="row wrap" style={{ marginTop: 12 }}>
+<label className="uploadBtn">
+Upload text script
+<input type="file" accept=".txt,.md,.csv,.json" onChange={handleScriptUpload} hidden />
+</label>
+{scriptText ? (
+<button className="secondary" type="button" onClick={clearScript}>
+Remove Script
+</button>
+) : null}
+</div>
+
+{scriptFileName ? (
+<div className="muted" style={{ marginTop: 10 }}>
+Loaded: <b>{scriptFileName}</b>
+</div>
+) : null}
+
+<div className="field" style={{ marginTop: 12 }}>
+<label>Or paste script / talk track</label>
+<textarea
+className="scriptArea"
+placeholder="Paste your script, objection handling points, discovery framework, or required bullets here..."
+value={scriptText}
+onChange={(e) => {
+const next = e.target.value;
+setScriptText(next);
+setScriptPoints(extractScriptBullets(next));
 }}
->
-<div className="micBars">
-<span style={{ height: `${12 + micLevel * 26}px` }} />
-<span style={{ height: `${18 + micLevel * 34}px` }} />
-<span style={{ height: `${12 + micLevel * 26}px` }} />
-</div>
-</div>
-
-  
-<div className="replyBox premium glass">
-<div className="replyHeader">
-<div className="replyLabel">
-{listening
-? "Listening"
-: waitingForReply
-? "Thinking"
-: speaking
-? "Prospect"
-: "Conversation"}
-</div>
-
-<div
-className={`statusDot ${
-listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""
-}`}
 />
 </div>
 
-<div className="replyText large">
-{listening
-? (message || "Listening...")
-: waitingForReply
-? "Thinking..."
-: speaking
-? (reply || "Prospect speaking...")
-: (reply || "Ready for your next response.")}
+{scriptPoints.length ? (
+<div style={{ marginTop: 8 }}>
+{scriptPoints.map((point, idx) => (
+<Pill key={idx} tone="blue">{point}</Pill>
+))}
 </div>
+) : null}
 </div>
 
-<div className="row" style={{ marginTop: 12 }}>
-<button onClick={endAndGrade}>End Session & Grade</button>
-</div>
-</div>
-) : (
-<div className="emptyArena premiumEmpty">
-<div className="idleOrb">
-<div className="idleMic">🎤</div>
-</div>
-
-<div className="emptyTitle">
-{startingSession ? "Starting session..." : "Ready to train"}
-</div>
-
-<div className="muted emptySub">
-{startingSession
-? "Building your prospect and turning on voice..."
-: "Start a session to enter the voice loop."}
-</div>
-
-<div className="emptyChips">
-<Pill tone="blue">Live AI prospect</Pill>
-<Pill tone="green">Hands free loop</Pill>
-<Pill tone="amber">Instant coaching</Pill>
-</div>
-</div>
-
+{session ? (
 <div className="sessionBox premium">
 <div className="avatarStage premiumStage">
+<div className={`avatarHalo mood-${sessionMood}`} />
 <div className="avatarGlowRing" />
 <div className="avatarCenter big">
 <ProspectAvatar speaking={speaking} emotion={currentEmotion} />
@@ -1354,7 +1505,7 @@ listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""
 <Pill tone="blue">Prospect persona</Pill>
 <div className="personaMain">{session?.persona || "AI prospect loaded"}</div>
 <div className="personaSub">
-Real-time objections, emotion shifts, and automatic voice loop.
+Real time objections, emotion shifts, and automatic voice loop.
 </div>
 </div>
 
@@ -1387,10 +1538,28 @@ onClick={() => setLiveCoachVisible((v) => !v)}
 )}
 </div>
 
-<div className="replyBox premium">
+<div
+className={`micIndicator ${listening ? "active" : ""}`}
+style={{
+transform: `scale(${1 + micLevel * 0.35})`,
+boxShadow: listening
+? `0 0 ${18 + micLevel * 28}px rgba(59,130,246,${0.2 + micLevel * 0.45})`
+: "none"
+}}
+>
+<div className="micBars">
+<span style={{ height: `${12 + micLevel * 26}px` }} />
+<span style={{ height: `${18 + micLevel * 34}px` }} />
+<span style={{ height: `${12 + micLevel * 26}px` }} />
+</div>
+</div>
+
+<div className="replyBox premium glass">
 <div className="replyHeader">
 <div className="replyLabel">
-{listening
+{endingSession
+? "Finishing"
+: listening
 ? "Listening"
 : waitingForReply
 ? "Thinking"
@@ -1399,15 +1568,23 @@ onClick={() => setLiveCoachVisible((v) => !v)}
 : "Conversation"}
 </div>
 
-<div className={`signal ${listening ? "live" : waitingForReply ? "thinking" : speaking ? "speaking" : ""}`}>
-<span />
-<span />
-<span />
-</div>
+<div
+className={`statusDot ${
+listening
+? "live"
+: waitingForReply
+? "thinking"
+: speaking
+? "speaking"
+: ""
+}`}
+/>
 </div>
 
 <div className="replyText large">
-{listening
+{endingSession
+? `Ending session${autoOutcome ? ` • ${autoOutcome}` : ""} and grading...`
+: listening
 ? (message || "Listening...")
 : waitingForReply
 ? "Thinking..."
@@ -1418,29 +1595,60 @@ onClick={() => setLiveCoachVisible((v) => !v)}
 </div>
 
 <div className="row wrap" style={{ marginTop: 14 }}>
-<button onClick={endAndGrade}>End Session & Grade</button>
-<Pill tone="green">Hands-free loop active</Pill>
+<button onClick={() => endAndGrade()} disabled={endingSession}>
+{endingSession ? "Grading..." : "End Session & Grade"}
+</button>
+<Pill tone="green">Hands free loop active</Pill>
+{autoOutcome ? (
+<Pill tone={autoOutcome === "won" ? "green" : "red"}>
+Auto outcome: {autoOutcome}
+</Pill>
+) : null}
 </div>
 </div>
-
-</div>
-</div>
-
 ) : (
+<div className="emptyArena premiumEmpty">
+<div className="idleOrb">
+<div className="idleMic">🎤</div>
+</div>
 
-)
+<div className="emptyTitle">
+{startingSession ? "Starting session..." : "Ready to train"}
+</div>
+
+<div className="muted emptySub">
+{startingSession
+? "Building your prospect and turning on voice..."
+: "Start a session to enter the voice loop."}
+</div>
+
+<div className="emptyChips">
+<Pill tone="blue">Live AI prospect</Pill>
+<Pill tone="green">Hands free loop</Pill>
+<Pill tone="amber">Instant coaching</Pill>
+</div>
+</div>
+)}
+</div>
+</div>
+
 {grade ? <Scorecard grade={grade} profile={profile} /> : null}
 </div>
 
 <div className="stack">
 <div className="card sideCard">
 <h3>Performance Deck</h3>
-<p className="muted">What matters most during the run.</p>
+<p className="muted">
+{grade
+? "These priorities are now based on your last graded performance."
+: session
+? "These priorities update live based on what you are saying."
+: "What matters most during the run."}
+</p>
 <div style={{ marginTop: 10 }}>
-<Pill tone="blue">Ask questions</Pill>
-<Pill tone="amber">Find pain</Pill>
-<Pill tone="green">Sound confident</Pill>
-<Pill tone="red">Avoid rambling</Pill>
+{performanceDeck.map((item, idx) => (
+<Pill key={idx} tone={item.tone}>{item.label}</Pill>
+))}
 </div>
 </div>
 
@@ -1448,7 +1656,7 @@ onClick={() => setLiveCoachVisible((v) => !v)}
 <div className="card sideCard">
 <h3>Manager Controls</h3>
 <p className="muted">
-Set the industry once for the company — reps won’t be able to change it.
+Set the industry once for the company. Reps won’t be able to change it.
 </p>
 
 <div className="row wrap">
@@ -1536,6 +1744,9 @@ onChange={(e) => setInviteEmail(e.target.value)}
 );
 }
 
+/* =========================
+Styles
+========================= */
 const globalCss = `
 :root { color-scheme: dark; }
 
@@ -1550,6 +1761,10 @@ color: white;
 }
 
 * { box-sizing: border-box; }
+
+textarea, input, select, button {
+font: inherit;
+}
 
 .app {
 min-height: 100vh;
@@ -1735,7 +1950,7 @@ opacity: 0.97;
 }
 
 button:disabled {
-opacity: 0.55;
+opacity: 0.65;
 cursor: not-allowed;
 transform: none;
 box-shadow: none;
@@ -1753,7 +1968,7 @@ border-radius: 12px;
 font-weight: 700;
 }
 
-select, input {
+select, input, textarea {
 background: rgba(255,255,255,0.08);
 border: 1px solid rgba(255,255,255,0.16);
 color: white;
@@ -1763,9 +1978,31 @@ outline: none;
 min-width: 220px;
 }
 
+textarea {
+width: 100%;
+min-height: 120px;
+resize: vertical;
+}
+
 select { min-width: 160px; }
 
-input::placeholder { color: rgba(255,255,255,0.55); }
+input::placeholder,
+textarea::placeholder {
+color: rgba(255,255,255,0.55);
+}
+
+.uploadBtn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+background: linear-gradient(135deg, #3b82f6, #2563eb);
+color: white;
+padding: 10px 16px;
+border-radius: 14px;
+font-weight: 800;
+cursor: pointer;
+box-shadow: 0 12px 28px rgba(37,99,235,0.28);
+}
 
 .statsRow {
 display: grid;
@@ -1857,6 +2094,26 @@ flex-wrap: wrap;
 .sectionTitle {
 font-size: 16px;
 font-weight: 800;
+}
+
+.scriptCard {
+margin-top: 14px;
+padding: 14px;
+border-radius: 16px;
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.10);
+}
+
+.scriptHeader {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+}
+
+.scriptArea {
+width: 100%;
+min-height: 130px;
 }
 
 .emptyArena {
@@ -1995,6 +2252,9 @@ border: 1px solid rgba(255,255,255,0.10);
 
 .replyBox.premium {
 background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+border-radius: 20px;
+border: 1px solid rgba(255,255,255,0.12);
+box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .replyHeader {
@@ -2023,37 +2283,6 @@ font-size: 22px;
 line-height: 1.35;
 font-weight: 600;
 }
-
-.signal {
-display: inline-flex;
-align-items: center;
-gap: 4px;
-}
-
-.signal span {
-width: 6px;
-height: 6px;
-border-radius: 999px;
-background: rgba(255,255,255,0.25);
-}
-
-.signal.live span {
-background: #60a5fa;
-animation: equalize 1s infinite ease-in-out;
-}
-
-.signal.thinking span {
-background: #f59e0b;
-animation: thinkingBlink 1s infinite ease-in-out;
-}
-
-.signal.speaking span {
-background: #22c55e;
-animation: equalize 0.7s infinite ease-in-out;
-}
-
-.signal span:nth-child(2) { animation-delay: 0.12s; }
-.signal span:nth-child(3) { animation-delay: 0.24s; }
 
 .scoreTop {
 display: grid;
@@ -2179,49 +2408,6 @@ border: 1px solid rgba(255,255,255,0.10);
 .lbName { font-weight: 800; }
 .lbRight { opacity: 0.9; }
 
-@keyframes pulseHalo {
-0% { transform: scale(1); opacity: 0.6; }
-50% { transform: scale(1.08); opacity: 0.95; }
-100% { transform: scale(1); opacity: 0.6; }
-}
-
-@keyframes speakHalo {
-0% { transform: scale(1); opacity: 0.55; }
-50% { transform: scale(1.06); opacity: 0.9; }
-100% { transform: scale(1); opacity: 0.55; }
-}
-
-@keyframes equalize {
-0% { transform: translateY(0px); opacity: 0.5; }
-50% { transform: translateY(-5px); opacity: 1; }
-100% { transform: translateY(0px); opacity: 0.5; }
-}
-
-@keyframes thinkingBlink {
-0% { opacity: 0.35; }
-50% { opacity: 1; }
-100% { opacity: 0.35; }
-}
-
-button:disabled {
-opacity: 0.7;
-cursor: not-allowed;
-}
-
-.emptyArena {
-margin-top: 14px;
-padding: 18px;
-border-radius: 18px;
-border: 1px dashed rgba(255,255,255,0.18);
-background: rgba(255,255,255,0.03);
-}
-
-.emptyTitle {
-font-size: 18px;
-font-weight: 800;
-margin-bottom: 8px;
-}
-
 .micIndicator {
 margin: 14px auto;
 width: 82px;
@@ -2236,7 +2422,8 @@ transition: transform 0.08s linear, box-shadow 0.08s linear, background 0.2s eas
 }
 
 .micIndicator.active {
-background: radial-gradient(circle, rgba(59,130,246,0.28), rgba(59,130,246,0.08));
+background: radial-gradient(circle, rgba(59,130,246,0.35), rgba(59,130,246,0.08));
+animation: micPulse 1.2s infinite;
 }
 
 .micBars {
@@ -2254,30 +2441,6 @@ border-radius: 999px;
 background: linear-gradient(180deg, #93c5fd, #3b82f6);
 display: block;
 transition: height 0.08s linear;
-}
-
-
-/* 🔥 ACTIVE LISTENING STATE */
-.micIndicator.active {
-background: radial-gradient(circle, rgba(59,130,246,0.35), rgba(59,130,246,0.08));
-box-shadow: 0 0 0 rgba(59,130,246,0.0);
-animation: micPulse 1.2s infinite;
-}
-
-/* 🔥 PULSE ANIMATION */
-@keyframes micPulse {
-0% {
-transform: scale(1);
-box-shadow: 0 0 0 0 rgba(59,130,246,0.5);
-}
-50% {
-transform: scale(1.08);
-box-shadow: 0 0 20px 6px rgba(59,130,246,0.35);
-}
-100% {
-transform: scale(1);
-box-shadow: 0 0 0 0 rgba(59,130,246,0.0);
-}
 }
 
 .premiumEmpty {
@@ -2374,13 +2537,6 @@ inset 0 0 40px rgba(255,255,255,0.04),
 animation: slowSpin 14s linear infinite;
 }
 
-.replyBox.premium {
-border-radius: 20px;
-background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
-border: 1px solid rgba(255,255,255,0.12);
-box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-}
-
 .statusDot {
 width: 12px;
 height: 12px;
@@ -2406,6 +2562,24 @@ box-shadow: 0 0 18px rgba(34,197,94,0.45);
 animation: liveBlink 0.8s infinite ease-in-out;
 }
 
+@keyframes pulseHalo {
+0% { transform: scale(1); opacity: 0.6; }
+50% { transform: scale(1.08); opacity: 0.95; }
+100% { transform: scale(1); opacity: 0.6; }
+}
+
+@keyframes speakHalo {
+0% { transform: scale(1); opacity: 0.55; }
+50% { transform: scale(1.06); opacity: 0.9; }
+100% { transform: scale(1); opacity: 0.55; }
+}
+
+@keyframes micPulse {
+0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+50% { transform: scale(1.08); box-shadow: 0 0 20px 6px rgba(59,130,246,0.35); }
+100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59,130,246,0.0); }
+}
+
 @keyframes idlePulse {
 0% { transform: scale(1); opacity: 0.9; }
 50% { transform: scale(1.05); opacity: 1; }
@@ -2422,7 +2596,4 @@ animation: liveBlink 0.8s infinite ease-in-out;
 0% { transform: rotate(0deg); }
 100% { transform: rotate(360deg); }
 }
-
-
-
 `;
